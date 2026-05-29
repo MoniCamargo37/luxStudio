@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useConfigStore } from './store/useConfigStore';
 import MainLayout from './layouts/MainLayout';
@@ -6,14 +6,18 @@ import GeometryPanel from './components/panels/GeometryPanel';
 import ArrangementPanel from './components/panels/ArrangementPanel';
 import LuminairePanel from './components/panels/LuminairePanel';
 import PavementPanel from './components/panels/PavementPanel';
+import BatchExcelPanel from './components/panels/BatchExcelPanel';
+import BatchResultsPanel from './components/panels/BatchResultsPanel';
 import ResultsPanel from './components/panels/ResultsPanel';
 import QuickInfoPanel from './components/panels/QuickInfoPanel';
 import RoadPlanView from './components/canvas/RoadPlanView';
 import RoadSectionView from './components/canvas/RoadSectionView';
+import type { BatchCalculationResponse } from './types';
 import './App.css';
 
 const Home: React.FC = () => {
   const { results, loading, error, calculate } = useConfigStore();
+  const [batchResults, setBatchResults] = useState<BatchCalculationResponse | null>(null);
 
   return (
     <main className="p-6">
@@ -41,6 +45,7 @@ const Home: React.FC = () => {
             <ArrangementPanel />
             <LuminairePanel />
             <PavementPanel />
+            <BatchExcelPanel onBatchResults={setBatchResults} />
 
             <button
               onClick={() => calculate()}
@@ -67,7 +72,7 @@ const Home: React.FC = () => {
           <section className="lg:col-span-6 space-y-4">
             <RoadPlanView />
             <RoadSectionView />
-            {results && <ResultsPanel result={results} />}
+            {batchResults ? <BatchResultsPanel batch={batchResults} /> : results && <ResultsPanel result={results} />}
           </section>
 
           {/* Right: Results Info */}

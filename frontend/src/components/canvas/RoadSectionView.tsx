@@ -28,6 +28,10 @@ const RoadSectionView: React.FC = () => {
   const roadPx = road_width * roadScale;
   const swlPx = sidewalk_left * roadScale;
   const swrPx = sidewalk_right * roadScale;
+  const tiltRadians = Math.abs(tilt) * Math.PI / 180;
+  const tiltArcEndX = 22 * Math.cos(tiltRadians);
+  const tiltArcEndY = tilt < 0 ? 22 * Math.sin(tiltRadians) : -22 * Math.sin(tiltRadians);
+  const tiltArcSweep = tilt < 0 ? 1 : 0;
 
   const Wtext = `W = ${totalW.toFixed(1)} m`;
 
@@ -82,7 +86,7 @@ const RoadSectionView: React.FC = () => {
             {/* Horizontal reference line (always shown) */}
             <line x1="0" y1="0" x2="32" y2="0" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4,3"/>
             {/* Tilted luminaire */}
-            <g transform={`rotate(${tilt})`}>
+            <g transform={`rotate(${-tilt})`}>
               {/* Luminaire body */}
               <rect x="-4" y="-14" width="24" height="10" fill="#2563eb" rx="1.5"/>
               <rect x="-4" y="-14" width="5" height="10" fill="#1d4ed8" rx="1.5"/>
@@ -91,8 +95,8 @@ const RoadSectionView: React.FC = () => {
               <polygon points="32,-9 27,-12 27,-6" fill="#3b82f6"/>
             </g>
             {/* Angle arc */}
-            {tilt > 0 && (
-              <path d={`M 22,0 A 22,22 0 0,1 ${22*Math.cos(tilt*Math.PI/180)},${22*Math.sin(tilt*Math.PI/180)}`}
+            {tilt !== 0 && (
+              <path d={`M 22,0 A 22,22 0 0,${tiltArcSweep} ${tiltArcEndX},${tiltArcEndY}`}
                     fill="none" stroke="#ef4444" strokeWidth="1.2"/>
             )}
             {/* Angle label (always shown) */}

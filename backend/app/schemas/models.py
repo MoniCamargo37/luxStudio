@@ -14,7 +14,7 @@ class CalculationConfig(BaseModel):
     height: float = Field(ge=4, le=20, default=9, description="Pole height in meters")
     spacing: float = Field(ge=5, le=60, default=30, description="Pole spacing in meters")
     arm_length: float = Field(ge=0, le=5, default=1.5, description="Arm length in meters")
-    tilt: float = Field(ge=0, le=30, default=5, description="Tilt angle in degrees")
+    tilt: float = Field(ge=-30, le=30, default=5, description="Tilt angle in degrees")
     optic_family: str = Field(description="Optic family code, e.g. F151")
     power: float = Field(gt=0, description="Luminaire power in watts")
     lighting_class: str = Field(
@@ -65,3 +65,17 @@ class CalculationResult(BaseModel):
     Ul: Optional[float] = None
     TI: Optional[float] = None
     SR: Optional[float] = None
+
+
+class BatchCalculationItem(BaseModel):
+    model_id: str
+    row: int
+    config: Optional[CalculationConfig] = None
+    result: Optional[CalculationResult] = None
+    error: Optional[str] = None
+
+
+class BatchCalculationResponse(BaseModel):
+    filename: str
+    count: int
+    items: list[BatchCalculationItem]

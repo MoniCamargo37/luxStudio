@@ -2,318 +2,327 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<title>{{ title }}</title>
 <style>
   @page {
     size: A4;
-    margin: 2cm 2.2cm;
-    @bottom-center {
+    margin: 13mm 15mm;
+    @bottom-right {
       content: counter(page) " / " counter(pages);
-      font-size: 8pt;
-      color: #888;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 7.5pt;
+      color: #94a3b8;
+      font-family: Arial, sans-serif;
     }
   }
-  @page :first {
-    @bottom-center { content: none; }
-  }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  * { box-sizing: border-box; }
   body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 9.5pt;
-    line-height: 1.5;
-    color: #1e293b;
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.7pt;
+    line-height: 1.35;
+    color: #172033;
+    background: #fff;
   }
 
-  /* ===== Cover ===== */
-  .cover {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    height: 95vh;
-    page-break-after: always;
-  }
-  .cover-badge {
-    display: inline-block;
-    padding: 4px 18px;
-    border-radius: 20px;
-    color: #fff;
-    font-weight: 700;
-    font-size: 14pt;
-    letter-spacing: 1px;
-    margin-bottom: 24px;
-  }
-  .cover h1 {
-    font-size: 26pt;
-    font-weight: 300;
-    color: #0f172a;
-    margin-bottom: 8px;
-  }
-  .cover h2 {
-    font-size: 16pt;
-    font-weight: 400;
-    color: #475569;
-    margin-bottom: 32px;
-  }
-  .cover .meta {
+  .report-header {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 16px;
-    font-size: 10pt;
-    margin-top: 16px;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: start;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #1e40af;
+    margin-bottom: 12px;
   }
-  .cover .meta dt { color: #64748b; }
-  .cover .meta dd { color: #0f172a; font-weight: 500; }
-  .cover .footer-note {
-    margin-top: auto;
+  .brand {
+    font-size: 21pt;
+    font-weight: 800;
+    letter-spacing: .2px;
+    color: #0f172a;
+  }
+  .subtitle {
+    margin-top: 2px;
+    font-size: 9.5pt;
+    color: #64748b;
+  }
+  .badge {
+    display: inline-block;
+    min-width: 74px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    text-align: center;
+    color: white;
+    font-weight: 800;
+    letter-spacing: .6px;
+    background: {{ compliant_color }};
+  }
+  .meta {
+    margin-top: 6px;
+    text-align: right;
+    color: #64748b;
     font-size: 8pt;
-    color: #94a3b8;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 12px;
   }
 
-  /* ===== Section headers ===== */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .summary-card {
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    padding: 8px 9px;
+    background: #f8fafc;
+    min-height: 47px;
+  }
+  .summary-label {
+    font-size: 7.2pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    margin-bottom: 3px;
+  }
+  .summary-value {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
   .section {
-    page-break-before: always;
-    padding-top: 8px;
+    margin-top: 12px;
+    break-inside: avoid;
   }
   .section-title {
-    font-size: 15pt;
-    font-weight: 600;
+    font-size: 12.5pt;
+    font-weight: 800;
     color: #0f172a;
-    border-bottom: 2px solid #1e40af;
     padding-bottom: 4px;
-    margin-bottom: 16px;
+    border-bottom: 2px solid #1e40af;
+    margin-bottom: 8px;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  .chart-box {
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    padding: 7px;
+    background: #fbfdff;
+    text-align: center;
+    overflow: hidden;
+  }
+  .chart-box svg,
+  .chart-box img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+  .road-chart {
+    padding: 4px 10px 2px;
+  }
+  .polar-chart {
+    padding: 4px;
   }
 
-  /* ===== Tables ===== */
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 8px 0;
-  }
-  th, td {
-    padding: 6px 10px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 9pt;
+    margin: 0;
   }
   th {
     background: #1e40af;
-    color: #fff;
-    font-weight: 600;
-    font-size: 8.5pt;
+    color: white;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: .45px;
+    font-size: 7.4pt;
+    padding: 6px 8px;
+    text-align: left;
+  }
+  td {
+    border-bottom: 1px solid #dbe3ef;
+    padding: 5.5px 8px;
+    vertical-align: top;
   }
   tr:nth-child(even) td { background: #f8fafc; }
-
-  .ok { color: #10b981; font-weight: 700; }
-  .fail { color: #ef4444; font-weight: 700; }
-
-  .criteria-table td:last-child,
-  .criteria-table td:nth-last-child(2) { text-align: center; }
-
-  /* ===== Side-by-side layout ===== */
-  .row { display: flex; gap: 20px; margin: 12px 0; }
-  .col { flex: 1; }
-
-  /* ===== Specs grid ===== */
-  .specs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px 24px;
+  td.value {
+    font-weight: 700;
+    color: #0f172a;
   }
-  .specs dt { color: #64748b; font-size: 8.5pt; grid-column: 1; }
-  .specs dd { font-weight: 500; font-size: 9pt; grid-column: 2; }
 
-  /* ===== Chart containers ===== */
-  .chart-box {
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 8px;
-    background: #fafafa;
-    margin: 12px 0;
+  .criteria-table td:nth-child(2),
+  .criteria-table td:nth-child(3),
+  .criteria-table td:nth-child(4) {
     text-align: center;
   }
-  .chart-box svg { max-width: 100%; height: auto; }
+  .ok { color: #059669; font-weight: 800; }
+  .fail { color: #dc2626; font-weight: 800; }
+  .result-row td {
+    background: #eef4ff !important;
+    font-weight: 800;
+  }
 
-  /* ===== Verdict box ===== */
   .verdict {
-    text-align: center;
-    padding: 24px;
-    border-radius: 8px;
-    margin: 24px 0;
+    border: 2px solid {{ compliant_color }};
+    border-radius: 7px;
+    padding: 11px 13px;
+    background: #f8fafc;
   }
-  .verdict.pass { background: #ecfdf5; border: 2px solid #10b981; }
-  .verdict.fail { background: #fef2f2; border: 2px solid #ef4444; }
-  .verdict .big { font-size: 28pt; font-weight: 800; }
-  .verdict .sub { font-size: 10pt; color: #475569; margin-top: 4px; }
+  .verdict-label {
+    color: {{ compliant_color }};
+    font-size: 17pt;
+    font-weight: 900;
+    margin-bottom: 3px;
+  }
+  .fine-print {
+    margin-top: 12px;
+    color: #94a3b8;
+    font-size: 7.4pt;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
+  <header class="report-header">
+    <div>
+      <div class="brand">LUX Studio</div>
+      <div class="subtitle">Road Lighting Report - CIE 140 / EN 13201</div>
+    </div>
+    <div>
+      <div class="badge">{{ compliant_label }}</div>
+      <div class="meta">{{ date }}</div>
+    </div>
+  </header>
 
-<!-- ============ PAGE 1: COVER ============ -->
-<div class="cover">
-  <div class="cover-badge" style="background:{{ compliant_color }}">{{ compliant_label }}</div>
-  <h1>LUX Studio</h1>
-  <h2>Road Lighting Report</h2>
-
-  <dl class="meta">
-    <dt>Luminaire</dt><dd>{{ luminaire_name }}</dd>
-    <dt>Lighting class</dt><dd>{{ lighting_class }}</dd>
-    <dt>Arrangement</dt><dd>{{ arrangement }}</dd>
-    <dt>Date</dt><dd>{{ date }}</dd>
-  </dl>
-
-  <div class="footer-note">
-    Generated by LUX Studio &mdash; CIE 140 / EN 13201 compliant calculation engine
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Luminaire</div>
+      <div class="summary-value">{{ luminaire_name }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Lighting class</div>
+      <div class="summary-value">{{ lighting_class }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Arrangement</div>
+      <div class="summary-value">{{ arrangement }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Road / height</div>
+      <div class="summary-value">{{ road_width }} / {{ height }}</div>
+    </div>
   </div>
-</div>
 
-<!-- ============ PAGE 2: ROAD GEOMETRY ============ -->
-<div class="section">
-  <div class="section-title">Road Geometry</div>
+  <section class="section">
+    <div class="section-title">Road Geometry</div>
+    <div class="chart-box road-chart">{{ road_svg }}</div>
+    <table>
+      <tr><th>Parameter</th><th>Value</th><th>Parameter</th><th>Value</th></tr>
+      <tr><td>Road width</td><td class="value">{{ road_width }}</td><td>Total width</td><td class="value">{{ total_width }}</td></tr>
+      <tr><td>Left sidewalk</td><td class="value">{{ sidewalk_left }}</td><td>Right sidewalk</td><td class="value">{{ sidewalk_right }}</td></tr>
+      <tr><td>Lanes</td><td class="value">{{ lanes }}</td><td>Arrangement</td><td class="value">{{ arrangement }}</td></tr>
+      <tr><td>Pole height</td><td class="value">{{ height }}</td><td>Spacing</td><td class="value">{{ spacing }}</td></tr>
+      <tr><td>Arm length</td><td class="value">{{ arm_length }}</td><td>Tilt</td><td class="value">{{ tilt }}</td></tr>
+      <tr><td>Maintenance factor</td><td class="value">{{ mf }}</td><td>Pavement / CCT</td><td class="value">{{ pavement }} / {{ cct }}</td></tr>
+    </table>
+  </section>
 
-  <div class="chart-box">{{ road_svg }}</div>
-
-  <table>
-    <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
-    <tr><td>Road width</td><td>{{ road_width }}</td><td>m</td></tr>
-    <tr><td>Sidewalk (left)</td><td>{{ sidewalk_left }}</td><td>m</td></tr>
-    <tr><td>Sidewalk (right)</td><td>{{ sidewalk_right }}</td><td>m</td></tr>
-    <tr><td>Lanes</td><td>{{ lanes }}</td><td>—</td></tr>
-    <tr><td>Arrangement</td><td>{{ arrangement }}</td><td>—</td></tr>
-    <tr><td>Pole height</td><td>{{ height }}</td><td>m</td></tr>
-    <tr><td>Spacing</td><td>{{ spacing }}</td><td>m</td></tr>
-    <tr><td>Arm length</td><td>{{ arm_length }}</td><td>m</td></tr>
-    <tr><td>Tilt</td><td>{{ tilt }}</td><td>°</td></tr>
-    <tr><td>Maintenance factor</td><td>{{ mf }}</td><td>—</td></tr>
-    <tr><td>Pavement class</td><td>{{ pavement }}</td><td>—</td></tr>
-    <tr><td>Lighting class</td><td>{{ lighting_class }}</td><td>EN 13201</td></tr>
-  </table>
-</div>
-
-<!-- ============ PAGE 3: LUMINAIRE ============ -->
-<div class="section">
-  <div class="section-title">Luminaire</div>
-
-  <div class="row">
-    <div class="col">
+  <section class="section">
+    <div class="section-title">Luminaire</div>
+    <div class="two-col">
       <table>
         <tr><th>Property</th><th>Value</th></tr>
-        <tr><td>Model</td><td>{{ luminaire_name }}</td></tr>
-        <tr><td>Optic family</td><td>{{ luminaire_family }}</td></tr>
-        <tr><td>Power</td><td>{{ luminaire_power }}</td></tr>
-        <tr><td>Luminous flux</td><td>{{ luminaire_flux }}</td></tr>
-        <tr><td>Efficiency</td><td>{{ luminaire_eff }}</td></tr>
-        <tr><td>LORL</td><td>{{ luminaire_LORL }}</td></tr>
+        <tr><td>Model</td><td class="value">{{ luminaire_name }}</td></tr>
+        <tr><td>Optic family</td><td class="value">{{ luminaire_family }}</td></tr>
+        <tr><td>Power</td><td class="value">{{ luminaire_power }}</td></tr>
+        <tr><td>Luminous flux</td><td class="value">{{ luminaire_flux }}</td></tr>
+        <tr><td>Efficiency</td><td class="value">{{ luminaire_eff }}</td></tr>
+        <tr><td>LORL</td><td class="value">{{ luminaire_LORL }}</td></tr>
       </table>
-    </div>
-    <div class="col">
       {% if polar_svg %}
-      <div class="chart-box">
-        <img src="data:image/svg+xml;base64,{{ polar_svg }}" alt="Polar diagram" style="max-width:100%"/>
+      <div class="chart-box polar-chart">
+        <img src="data:image/svg+xml;base64,{{ polar_svg }}" alt="Polar photometry">
       </div>
       {% endif %}
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- ============ PAGE 4: RESULTS ============ -->
-<div class="section">
-  <div class="section-title">Results</div>
+  <section class="section">
+    <div class="section-title">Results</div>
+    <table class="criteria-table">
+      <tr>
+        <th>Criterion</th>
+        <th>Value</th>
+        <th>Required</th>
+        <th>Status</th>
+      </tr>
+      {% for c in criteria %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ "%.3f"|format(c.value) if c.value is defined else "-" }}</td>
+        <td>{{ "%.3f"|format(c.required) if c.required is defined else "-" }}</td>
+        <td>
+          {% if c.passed %}
+            <span class="ok">PASS</span>
+          {% else %}
+            <span class="fail">FAIL</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      <tr class="result-row">
+        <td colspan="3" style="text-align:right">Overall</td>
+        <td>
+          {% if compliant %}
+            <span class="ok">COMPLIANT</span>
+          {% else %}
+            <span class="fail">NON-COMPLIANT</span>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </section>
 
-  <table class="criteria-table">
-    <tr>
-      <th>Criterion</th>
-      <th>Value</th>
-      <th>Required</th>
-      <th>Status</th>
-    </tr>
-    {% for c in criteria %}
-    <tr>
-      <td>{{ c.name }}</td>
-      <td>{{ "%.3f"|format(c.value) if c.value is defined else "—" }}</td>
-      <td>{{ "%.3f"|format(c.required) if c.required is defined else "—" }}</td>
-      <td>
-        {% if c.passed %}
-          <span class="ok">✓ PASS</span>
-        {% else %}
-          <span class="fail">✗ FAIL</span>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-    <tr style="font-weight:700; background:#f1f5f9;">
-      <td colspan="3" style="text-align:right">Overall</td>
-      <td>
-        {% if compliant %}
-          <span class="ok">✓ COMPLIANT</span>
-        {% else %}
-          <span class="fail">✗ NON-COMPLIANT</span>
-        {% endif %}
-      </td>
-    </tr>
-  </table>
-
-  <div class="row">
-    <div class="col">
-      <dl class="specs">
-        <dt>Lavg</dt><dd>{{ Lavg }} cd/m²</dd>
-        <dt>Uo</dt><dd>{{ Uo }}</dd>
-        <dt>Ul</dt><dd>{{ Ul }}</dd>
-        <dt>TI</dt><dd>{{ TI }} %</dd>
-        <dt>SR</dt><dd>{{ SR }}</dd>
-      </dl>
+  <section class="section">
+    <div class="section-title">Conclusion</div>
+    <div class="two-col">
+      <div class="verdict">
+        <div class="verdict-label">{{ compliant_label }}</div>
+        <div>
+          {% if compliant %}
+            The configuration meets all checked requirements for EN 13201 class {{ lighting_class }}.
+          {% else %}
+            The configuration does not meet all checked requirements for EN 13201 class {{ lighting_class }}.
+            Review the failing criteria and adjust the design.
+          {% endif %}
+        </div>
+      </div>
+      <table>
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Lavg</td><td class="value">{{ Lavg }} cd/m2</td></tr>
+        <tr><td>Uo</td><td class="value">{{ Uo }}</td></tr>
+        <tr><td>Ul</td><td class="value">{{ Ul }}</td></tr>
+        <tr><td>TI</td><td class="value">{{ TI }} %</td></tr>
+        <tr><td>SR</td><td class="value">{{ SR }}</td></tr>
+      </table>
     </div>
-  </div>
-</div>
-
-<!-- ============ PAGE 5: ISOLINES ============ -->
-<div class="section">
-  <div class="section-title">Luminance Distribution</div>
+  </section>
 
   {% if isolines_svg %}
-  <div class="chart-box">
-    <img src="data:image/svg+xml;base64,{{ isolines_svg }}" alt="Isolines" style="max-width:100%"/>
-  </div>
-  {% else %}
-  <p style="color:#94a3b8; text-align:center; padding:40px;">Isolines not available for this configuration.</p>
-  {% endif %}
-</div>
-
-<!-- ============ PAGE 6: CONCLUSION ============ -->
-<div class="section">
-  <div class="section-title">Conclusion</div>
-
-  <div class="verdict {{ 'pass' if compliant else 'fail' }}">
-    <div class="big">{{ compliant_label }}</div>
-    <div class="sub">
-      {% if compliant %}
-        The configuration meets all requirements of EN 13201 class {{ lighting_class }}.
-      {% else %}
-        The configuration does NOT meet all requirements of EN 13201 class {{ lighting_class }}.
-        Review the failing criteria above and adjust the design.
-      {% endif %}
+  <section class="section">
+    <div class="section-title">Luminance Distribution</div>
+    <div class="chart-box">
+      <img src="data:image/svg+xml;base64,{{ isolines_svg }}" alt="Luminance isolines">
     </div>
+  </section>
+  {% endif %}
+
+  <div class="fine-print">
+    LUX Studio - Generated {{ date }} - Values are calculated from the selected LDT photometry and project geometry.
   </div>
-
-  <table>
-    <tr><th>Parameter</th><th>Value</th></tr>
-    <tr><td>Luminaire</td><td>{{ luminaire_name }} ({{ luminaire_power }})</td></tr>
-    <tr><td>Lighting class</td><td>{{ lighting_class }}</td></tr>
-    <tr><td>Road width / lanes</td><td>{{ road_width }} / {{ lanes }} lanes</td></tr>
-    <tr><td>Pole height / spacing</td><td>{{ height }} / {{ spacing }}</td></tr>
-    <tr><td>Arrangement</td><td>{{ arrangement }}</td></tr>
-    <tr><td>Result</td><td style="color:{{ compliant_color }}; font-weight:700;">{{ compliant_label }}</td></tr>
-  </table>
-
-  <p style="margin-top:32px; font-size:8pt; color:#94a3b8; text-align:center;">
-    LUX Studio &mdash; CIE 140:2019 &amp; EN 13201-2:2015 &mdash; Generated {{ date }}
-  </p>
-</div>
-
 </body>
 </html>

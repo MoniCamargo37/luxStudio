@@ -86,10 +86,13 @@ const ArrangementPanel: React.FC = () => {
             <label className="block text-sm font-medium text-slate-600 mb-1">
               Tilt <span className="text-slate-400">({tilt.toFixed(0)}°)</span>
             </label>
-            <input type="range" min="0" max="25" step="1" value={tilt}
+            <input type="range" min="-25" max="25" step="1" value={tilt}
               onChange={e => setTilt(parseFloat(e.target.value))}
               className="w-full"
             />
+            <div className="flex justify-between text-xs text-slate-400 mt-0.5">
+              <span>-25</span><span>25</span>
+            </div>
           </div>
         </div>
       </div>

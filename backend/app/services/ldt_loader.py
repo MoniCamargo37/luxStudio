@@ -1,5 +1,6 @@
 import re
 import os
+from functools import lru_cache
 from pathlib import Path
 from salvi_lighting import parse_ldt, Photometry
 
@@ -103,6 +104,7 @@ def get_ldt_path(ldt_id: str):
     return str(LDT_DIR / info["relative_path"])
 
 
+@lru_cache(maxsize=128)
 def get_photometry(ldt_id: str):
     path = get_ldt_path(ldt_id)
     if path is None:

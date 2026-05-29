@@ -38,6 +38,20 @@ export interface CalculationResult {
   Emin?: number;
 }
 
+export interface BatchCalculationItem {
+  model_id: string;
+  row: number;
+  config?: any;
+  result?: CalculationResult;
+  error?: string;
+}
+
+export interface BatchCalculationResponse {
+  filename: string;
+  count: number;
+  items: BatchCalculationItem[];
+}
+
 export type ArrangementType = 'Lineal' | 'Bilateral' | 'Central Doble' | 'En Isleta';
 
 export type LightingClass = 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6';
