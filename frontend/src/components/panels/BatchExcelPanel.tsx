@@ -1,40 +1,39 @@
-import React, { useState } from 'react';
-import type { BatchCalculationResponse } from '../../types';
+import React, { useId, useRef, useState } from 'react';
 
 interface BatchExcelPanelProps {
-  onBatchResults: (batch: BatchCalculationResponse | null) => void;
+  file: File | null;
+  onFileChange: (file: File | null) => void;
 }
 
-const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ onBatchResults }) => {
-  const [uploading, setUploading] = useState(false);
+const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ file, onFileChange }) => {
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFile = async (file?: File) => {
-    if (!file) return;
-    setUploading(true);
+  const handleFile = (nextFile?: File) => {
     setError(null);
-    onBatchResults(null);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/batch-excel', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
-      }
-
-      onBatchResults(await response.json());
-    } catch (err: any) {
-      setError(err.message || 'Failed to read Excel file');
-    } finally {
-      setUploading(false);
+    if (!nextFile) {
+      onFileChange(null);
+      return;
     }
+
+    const isExcel = /\.(xlsx|xls)$/i.test(nextFile.name);
+    if (!isExcel) {
+      setError('Please upload an Excel file (.xlsx or .xls).');
+      onFileChange(null);
+      return;
+    }
+
+    onFileChange(nextFile);
+  };
+
+  const clearFile = () => {
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+    onFileChange(null);
+    setError(null);
   };
 
   return (
@@ -48,18 +47,41 @@ const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ onBatchResults }) => 
         </h3>
       </div>
       <div className="p-4 space-y-3">
-        <label className={`block border border-dashed rounded-lg p-4 text-center transition-colors
-          ${uploading ? 'border-blue-200 bg-blue-50 text-blue-600' : 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100 cursor-pointer'}`}>
-          <input
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            disabled={uploading}
-            onChange={e => handleFile(e.target.files?.[0])}
-          />
-          <div className="text-sm font-medium">{uploading ? 'Reading and calculating...' : 'Upload Excel'}</div>
-          <div className="text-xs text-slate-400 mt-1">Reads all model rows and calculates the full study.</div>
+        <input
+          id={inputId}
+          ref={inputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="sr-only"
+          onChange={e => {
+            handleFile(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+
+        <label className={`block border border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
+          ${file ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+          htmlFor={inputId}
+        >
+          <div className="text-sm font-medium">{file ? file.name : 'Upload Excel'}</div>
+          <div className="text-xs text-slate-400 mt-1">
+            {file ? 'Excel mode selected. Press Calculate to run the study.' : 'Optional: use Excel instead of the manual configuration.'}
+          </div>
+          <div className="mt-3 inline-flex rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
+            {file ? 'Replace Excel' : 'Choose file'}
+          </div>
         </label>
+
+        {file && (
+          <button
+            type="button"
+            onClick={clearFile}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Use manual configuration
+          </button>
+        )}
+
         {error && (
           <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
             {error}

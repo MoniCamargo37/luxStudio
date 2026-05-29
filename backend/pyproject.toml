@@ -13,5 +13,4 @@ dependencies = [
     "jinja2",
     "weasyprint",
     "python-multipart",
-    "salvi-lighting @ file:///C:/githubRepo/estudios%20luminicos",
 ]

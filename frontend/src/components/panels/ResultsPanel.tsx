@@ -23,6 +23,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ result, configOverride, tit
     height: configOverride?.height ?? config.height,
     spacing: configOverride?.spacing ?? config.spacing,
     arm_length: configOverride?.arm_length ?? config.arm_length,
+    pole_offset: configOverride?.pole_offset ?? config.pole_offset,
     tilt: configOverride?.tilt ?? config.tilt,
     optic_family: configOverride?.optic_family ?? config.optic_family,
     power: configOverride?.power ?? config.power,

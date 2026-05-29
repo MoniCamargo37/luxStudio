@@ -2,7 +2,7 @@ import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 
 const RoadSectionView: React.FC = () => {
-  const { road_width, sidewalk_left, sidewalk_right, height, arm_length, tilt, lanes } = useConfigStore();
+  const { road_width, sidewalk_left, sidewalk_right, height, arm_length, pole_offset, tilt, lanes } = useConfigStore();
 
   const totalW = road_width + sidewalk_left + sidewalk_right;
   const roadThick = 14;
@@ -21,9 +21,10 @@ const RoadSectionView: React.FC = () => {
   const roadY = H - margin.bottom - roadThick;
   const roadBase = roadY + roadThick;
 
-  const poleX = margin.left + sidewalk_left * roadScale;
+  const roadEdgeX = margin.left + sidewalk_left * roadScale;
+  const poleX = roadEdgeX - pole_offset * roadScale;
   const poleTop = roadY - height * poleScale;
-  const armEndX = poleX + arm_length * poleScale;
+  const armEndX = poleX + arm_length * roadScale;
 
   const roadPx = road_width * roadScale;
   const swlPx = sidewalk_left * roadScale;
@@ -75,6 +76,20 @@ const RoadSectionView: React.FC = () => {
 
           <line x1={poleX} y1={roadBase} x2={poleX} y2={poleTop}
                 stroke="#334155" strokeWidth="4" strokeLinecap="round"/>
+
+          {pole_offset > 0 && (
+            <>
+              <line x1={poleX} y1={roadBase - 20} x2={roadEdgeX} y2={roadBase - 20}
+                    stroke="#64748b" strokeWidth="1"/>
+              <polygon points={`${poleX},${roadBase - 20} ${poleX + 5},${roadBase - 24} ${poleX + 5},${roadBase - 16}`} fill="#64748b"/>
+              <polygon points={`${roadEdgeX},${roadBase - 20} ${roadEdgeX - 5},${roadBase - 24} ${roadEdgeX - 5},${roadBase - 16}`} fill="#64748b"/>
+              <rect x={(poleX + roadEdgeX) / 2 - 22} y={roadBase - 41} width="44" height="16" rx="3" fill="white" opacity="0.9"/>
+              <text x={(poleX + roadEdgeX) / 2} y={roadBase - 29}
+                    textAnchor="middle" fontSize="10" fill="#1e293b" fontWeight="600">
+                {pole_offset.toFixed(2)}m
+              </text>
+            </>
+          )}
 
           {arm_length > 0 && (
             <line x1={poleX} y1={poleTop} x2={armEndX} y2={poleTop}

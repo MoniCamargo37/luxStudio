@@ -5,7 +5,6 @@ import MainLayout from './layouts/MainLayout';
 import GeometryPanel from './components/panels/GeometryPanel';
 import ArrangementPanel from './components/panels/ArrangementPanel';
 import LuminairePanel from './components/panels/LuminairePanel';
-import PavementPanel from './components/panels/PavementPanel';
 import BatchExcelPanel from './components/panels/BatchExcelPanel';
 import BatchResultsPanel from './components/panels/BatchResultsPanel';
 import ResultsPanel from './components/panels/ResultsPanel';
@@ -16,8 +15,54 @@ import type { BatchCalculationResponse } from './types';
 import './App.css';
 
 const Home: React.FC = () => {
-  const { results, loading, error, calculate } = useConfigStore();
+  const { results, loading, error, calculate, setResults, setLoading, setError } = useConfigStore();
   const [batchResults, setBatchResults] = useState<BatchCalculationResponse | null>(null);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+
+  const handleExcelFileChange = (file: File | null) => {
+    setExcelFile(file);
+    setBatchResults(null);
+    setResults(null);
+    setError(null);
+  };
+
+  const calculateExcel = async (file: File) => {
+    setLoading(true);
+    setError(null);
+    setBatchResults(null);
+    setResults(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/batch-excel', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.detail || `Server error (${response.status})`);
+      }
+
+      setBatchResults(await response.json());
+    } catch (err: any) {
+      setError(err.message || 'Failed to calculate Excel file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCalculate = async () => {
+    if (excelFile) {
+      await calculateExcel(excelFile);
+      return;
+    }
+
+    setBatchResults(null);
+    await calculate();
+  };
 
   return (
     <main className="p-6">
@@ -44,11 +89,10 @@ const Home: React.FC = () => {
             <GeometryPanel />
             <ArrangementPanel />
             <LuminairePanel />
-            <PavementPanel />
-            <BatchExcelPanel onBatchResults={setBatchResults} />
+            <BatchExcelPanel file={excelFile} onFileChange={handleExcelFileChange} />
 
             <button
-              onClick={() => calculate()}
+              onClick={handleCalculate}
               disabled={loading}
               className={`w-full py-3 px-6 rounded-lg font-medium text-white transition-all
                 ${loading
@@ -63,7 +107,7 @@ const Home: React.FC = () => {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
                 )}
-                {loading ? 'Calculating...' : 'Calculate'}
+                {loading ? 'Calculating...' : excelFile ? 'Calculate Excel' : 'Calculate'}
               </div>
             </button>
           </section>

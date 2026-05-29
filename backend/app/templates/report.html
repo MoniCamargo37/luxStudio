@@ -6,323 +6,447 @@
 <style>
   @page {
     size: A4;
-    margin: 13mm 15mm;
-    @bottom-right {
-      content: counter(page) " / " counter(pages);
-      font-size: 7.5pt;
-      color: #94a3b8;
-      font-family: Arial, sans-serif;
-    }
+    margin: 0;
   }
 
   * { box-sizing: border-box; }
   body {
     margin: 0;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 8.7pt;
+    font-size: 8.8pt;
     line-height: 1.35;
     color: #172033;
     background: #fff;
   }
-
-  .report-header {
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 13mm 15mm 12mm;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+  .header {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 16px;
     align-items: start;
-    padding-bottom: 10px;
+    gap: 16px;
+    padding-bottom: 9px;
     border-bottom: 3px solid #1e40af;
     margin-bottom: 12px;
   }
   .brand {
     font-size: 21pt;
-    font-weight: 800;
-    letter-spacing: .2px;
+    font-weight: 900;
     color: #0f172a;
+    letter-spacing: .15px;
   }
   .subtitle {
     margin-top: 2px;
-    font-size: 9.5pt;
     color: #64748b;
+    font-size: 9.4pt;
   }
   .badge {
-    display: inline-block;
     min-width: 74px;
-    padding: 6px 10px;
+    display: inline-block;
+    padding: 6px 12px;
     border-radius: 999px;
+    color: #fff;
     text-align: center;
-    color: white;
-    font-weight: 800;
-    letter-spacing: .6px;
     background: {{ compliant_color }};
+    font-weight: 900;
+    letter-spacing: .55px;
   }
-  .meta {
-    margin-top: 6px;
-    text-align: right;
-    color: #64748b;
-    font-size: 8pt;
+  .meta { margin-top: 6px; text-align: right; color: #64748b; font-size: 7.8pt; }
+  .footer {
+    position: absolute;
+    left: 15mm;
+    right: 15mm;
+    bottom: 7mm;
+    display: flex;
+    justify-content: space-between;
+    color: #94a3b8;
+    font-size: 7.2pt;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 5px;
   }
-
+  h1, h2, h3 { margin: 0; color: #0f172a; }
+  .section-title {
+    font-size: 13.5pt;
+    font-weight: 900;
+    color: #0f172a;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #1e40af;
+    margin: 0 0 10px;
+  }
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin-bottom: 12px;
+    margin: 12px 0;
   }
   .summary-card {
     border: 1px solid #dbe3ef;
-    border-radius: 6px;
-    padding: 8px 9px;
+    border-radius: 7px;
     background: #f8fafc;
-    min-height: 47px;
+    padding: 8px 9px;
+    min-height: 51px;
   }
   .summary-label {
-    font-size: 7.2pt;
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: .45px;
-    margin-bottom: 3px;
+    font-size: 7.1pt;
+    margin-bottom: 4px;
   }
   .summary-value {
+    color: #0f172a;
     font-size: 9pt;
-    font-weight: 700;
-    color: #0f172a;
-  }
-
-  .section {
-    margin-top: 12px;
-    break-inside: avoid;
-  }
-  .section-title {
-    font-size: 12.5pt;
     font-weight: 800;
-    color: #0f172a;
-    padding-bottom: 4px;
-    border-bottom: 2px solid #1e40af;
-    margin-bottom: 8px;
   }
   .two-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 13px;
     align-items: start;
   }
-  .chart-box {
+  .chart-card {
     border: 1px solid #dbe3ef;
-    border-radius: 6px;
-    padding: 7px;
+    border-radius: 7px;
     background: #fbfdff;
-    text-align: center;
+    padding: 7px;
     overflow: hidden;
   }
-  .chart-box svg,
-  .chart-box img {
-    display: block;
+  .chart-card svg {
     width: 100%;
-    max-width: 100%;
     height: auto;
+    display: block;
   }
-  .road-chart {
-    padding: 4px 10px 2px;
-  }
-  .polar-chart {
+  .large-chart {
     padding: 4px;
   }
-
+  .polar-card {
+    height: 178mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .polar-card svg {
+    width: 94%;
+    max-height: 166mm;
+  }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0;
   }
   th {
     background: #1e40af;
-    color: white;
+    color: #fff;
     text-transform: uppercase;
-    letter-spacing: .45px;
-    font-size: 7.4pt;
-    padding: 6px 8px;
+    letter-spacing: .42px;
+    font-size: 7.25pt;
+    padding: 6px 7px;
     text-align: left;
   }
   td {
     border-bottom: 1px solid #dbe3ef;
-    padding: 5.5px 8px;
+    padding: 5.5px 7px;
     vertical-align: top;
   }
   tr:nth-child(even) td { background: #f8fafc; }
-  td.value {
-    font-weight: 700;
-    color: #0f172a;
+  .value { font-weight: 800; color: #0f172a; }
+  .ok { color: #059669; font-weight: 900; }
+  .fail { color: #dc2626; font-weight: 900; }
+  .result-row td {
+    background: #eef4ff !important;
+    font-weight: 900;
   }
-
   .criteria-table td:nth-child(2),
   .criteria-table td:nth-child(3),
   .criteria-table td:nth-child(4) {
     text-align: center;
   }
-  .ok { color: #059669; font-weight: 800; }
-  .fail { color: #dc2626; font-weight: 800; }
-  .result-row td {
-    background: #eef4ff !important;
-    font-weight: 800;
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0 12px;
   }
-
-  .verdict {
-    border: 2px solid {{ compliant_color }};
+  .metric {
+    border: 1px solid #dbe3ef;
     border-radius: 7px;
-    padding: 11px 13px;
+    padding: 8px;
     background: #f8fafc;
   }
-  .verdict-label {
-    color: {{ compliant_color }};
-    font-size: 17pt;
-    font-weight: 900;
-    margin-bottom: 3px;
-  }
-  .fine-print {
+  .metric-label { color: #64748b; font-size: 7.4pt; text-transform: uppercase; letter-spacing: .4px; }
+  .metric-value { margin-top: 3px; font-size: 13pt; font-weight: 900; color: #0f172a; }
+  .verdict {
     margin-top: 12px;
-    color: #94a3b8;
-    font-size: 7.4pt;
-    text-align: center;
+    border: 2px solid {{ compliant_color }};
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #f8fafc;
   }
+  .verdict-title {
+    color: {{ compliant_color }};
+    font-size: 20pt;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .table-note {
+    color: #64748b;
+    font-size: 8pt;
+    margin: 4px 0 8px;
+  }
+  .point-table th,
+  .point-table td {
+    padding: 4px 5px;
+    text-align: center;
+    font-size: 7.1pt;
+  }
+  .technical-note {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 7.8pt;
+  }
+  .planning-profile {
+    margin-bottom: 10px;
+  }
+  .planning-profile h3,
+  .planning-block h3 {
+    font-size: 10.5pt;
+    margin: 0 0 6px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .planning-profile table td {
+    padding: 5px 7px;
+  }
+  .planning-row-highlight td {
+    background: #eef2f7 !important;
+  }
+  .planning-drawings {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .planning-drawings .chart-card {
+    padding: 4px 6px;
+  }
+  .planning-data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .relation-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin-top: 10px;
+  }
+  .relation-item {
+    border: 1px solid #dbe3ef;
+    background: #f8fafc;
+    border-radius: 7px;
+    padding: 7px;
+  }
+  .relation-item .summary-label { margin-bottom: 2px; }
 </style>
 </head>
 <body>
-  <header class="report-header">
-    <div>
-      <div class="brand">LUX Studio</div>
-      <div class="subtitle">Road Lighting Report - CIE 140 / EN 13201</div>
-    </div>
-    <div>
-      <div class="badge">{{ compliant_label }}</div>
-      <div class="meta">{{ date }}</div>
-    </div>
-  </header>
-
-  <div class="summary-grid">
-    <div class="summary-card">
-      <div class="summary-label">Luminaire</div>
-      <div class="summary-value">{{ luminaire_name }}</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">Lighting class</div>
-      <div class="summary-value">{{ lighting_class }}</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">Arrangement</div>
-      <div class="summary-value">{{ arrangement }}</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">Road / height</div>
-      <div class="summary-value">{{ road_width }} / {{ height }}</div>
-    </div>
-  </div>
-
-  <section class="section">
-    <div class="section-title">Road Geometry</div>
-    <div class="chart-box road-chart">{{ road_svg }}</div>
-    <table>
-      <tr><th>Parameter</th><th>Value</th><th>Parameter</th><th>Value</th></tr>
-      <tr><td>Road width</td><td class="value">{{ road_width }}</td><td>Total width</td><td class="value">{{ total_width }}</td></tr>
-      <tr><td>Left sidewalk</td><td class="value">{{ sidewalk_left }}</td><td>Right sidewalk</td><td class="value">{{ sidewalk_right }}</td></tr>
-      <tr><td>Lanes</td><td class="value">{{ lanes }}</td><td>Arrangement</td><td class="value">{{ arrangement }}</td></tr>
-      <tr><td>Pole height</td><td class="value">{{ height }}</td><td>Spacing</td><td class="value">{{ spacing }}</td></tr>
-      <tr><td>Arm length</td><td class="value">{{ arm_length }}</td><td>Tilt</td><td class="value">{{ tilt }}</td></tr>
-      <tr><td>Maintenance factor</td><td class="value">{{ mf }}</td><td>Pavement / CCT</td><td class="value">{{ pavement }} / {{ cct }}</td></tr>
-    </table>
-  </section>
-
-  <section class="section">
-    <div class="section-title">Luminaire</div>
-    <div class="two-col">
-      <table>
-        <tr><th>Property</th><th>Value</th></tr>
-        <tr><td>Model</td><td class="value">{{ luminaire_name }}</td></tr>
-        <tr><td>Optic family</td><td class="value">{{ luminaire_family }}</td></tr>
-        <tr><td>Power</td><td class="value">{{ luminaire_power }}</td></tr>
-        <tr><td>Luminous flux</td><td class="value">{{ luminaire_flux }}</td></tr>
-        <tr><td>Efficiency</td><td class="value">{{ luminaire_eff }}</td></tr>
-        <tr><td>LORL</td><td class="value">{{ luminaire_LORL }}</td></tr>
-      </table>
-      {% if polar_svg %}
-      <div class="chart-box polar-chart">
-        <img src="data:image/svg+xml;base64,{{ polar_svg }}" alt="Polar photometry">
+  <section class="page">
+    <header class="header">
+      <div>
+        <div class="brand">LUX Studio</div>
+        <div class="subtitle">Road Lighting Report - {{ standard }}</div>
       </div>
-      {% endif %}
+      <div>
+        <div class="badge">{{ compliant_label }}</div>
+        <div class="meta">Generated {{ date }}</div>
+      </div>
+    </header>
+
+    <h1 class="section-title">Project Summary</h1>
+    <div class="summary-grid">
+      <div class="summary-card"><div class="summary-label">Luminaire</div><div class="summary-value">{{ luminaire.luminaire_name }}</div></div>
+      <div class="summary-card"><div class="summary-label">Lighting class</div><div class="summary-value">{{ cfg.lighting_class }}</div></div>
+      <div class="summary-card"><div class="summary-label">Arrangement</div><div class="summary-value">{{ cfg.arrangement }}</div></div>
+      <div class="summary-card"><div class="summary-label">Road / height</div><div class="summary-value">{{ "%.1f"|format(cfg.road_width) }} m / {{ "%.1f"|format(cfg.height) }} m</div></div>
+      <div class="summary-card"><div class="summary-label">Maintenance factor</div><div class="summary-value">{{ "%.2f"|format(cfg.mf) }}</div></div>
+      <div class="summary-card"><div class="summary-label">Pavement / CCT</div><div class="summary-value">{{ cfg.pavement }} / {{ cfg.cct }} K</div></div>
     </div>
-  </section>
 
-  <section class="section">
-    <div class="section-title">Results</div>
-    <table class="criteria-table">
-      <tr>
-        <th>Criterion</th>
-        <th>Value</th>
-        <th>Required</th>
-        <th>Status</th>
-      </tr>
-      {% for c in criteria %}
-      <tr>
-        <td>{{ c.name }}</td>
-        <td>{{ "%.3f"|format(c.value) if c.value is defined else "-" }}</td>
-        <td>{{ "%.3f"|format(c.required) if c.required is defined else "-" }}</td>
-        <td>
-          {% if c.passed %}
-            <span class="ok">PASS</span>
-          {% else %}
-            <span class="fail">FAIL</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      <tr class="result-row">
-        <td colspan="3" style="text-align:right">Overall</td>
-        <td>
-          {% if compliant %}
-            <span class="ok">COMPLIANT</span>
-          {% else %}
-            <span class="fail">NON-COMPLIANT</span>
-          {% endif %}
-        </td>
-      </tr>
-    </table>
-  </section>
+    <div class="chart-card large-chart">{{ mini_section_svg }}</div>
 
-  <section class="section">
-    <div class="section-title">Conclusion</div>
-    <div class="two-col">
-      <div class="verdict">
-        <div class="verdict-label">{{ compliant_label }}</div>
+    <div class="two-col" style="margin-top: 12px;">
+      <table>
+        <tr><th>Planning parameter</th><th>Value</th></tr>
+        <tr><td>Total width</td><td class="value">{{ "%.1f"|format(total_width) }} m</td></tr>
+        <tr><td>Roadway width</td><td class="value">{{ "%.1f"|format(cfg.road_width) }} m</td></tr>
+        <tr><td>Sidewalks</td><td class="value">{{ "%.1f"|format(cfg.sidewalk_left) }} m / {{ "%.1f"|format(cfg.sidewalk_right) }} m</td></tr>
+        <tr><td>Spacing</td><td class="value">{{ "%.1f"|format(cfg.spacing) }} m</td></tr>
+        <tr><td>Pole offset / arm / tilt</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.1f"|format(cfg.arm_length) }} m / {{ "%.0f"|format(cfg.tilt) }}°</td></tr>
+      </table>
+      <div class="verdict" style="margin-top: 0;">
+        <div class="verdict-title">{{ compliant_label }}</div>
         <div>
           {% if compliant %}
-            The configuration meets all checked requirements for EN 13201 class {{ lighting_class }}.
+            The current road lighting configuration satisfies all checked criteria for class {{ cfg.lighting_class }}.
           {% else %}
-            The configuration does not meet all checked requirements for EN 13201 class {{ lighting_class }}.
-            Review the failing criteria and adjust the design.
+            The current road lighting configuration does not satisfy every checked criterion for class {{ cfg.lighting_class }}.
           {% endif %}
         </div>
       </div>
+    </div>
+    <div class="footer"><span>LUX Studio technical report</span><span>Page 1</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Luminaire photometry</div></div>
+      <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
+    </header>
+    <h2 class="section-title">Luminaire</h2>
+    <div class="two-col">
       <table>
-        <tr><th>Metric</th><th>Value</th></tr>
-        <tr><td>Lavg</td><td class="value">{{ Lavg }} cd/m2</td></tr>
-        <tr><td>Uo</td><td class="value">{{ Uo }}</td></tr>
-        <tr><td>Ul</td><td class="value">{{ Ul }}</td></tr>
-        <tr><td>TI</td><td class="value">{{ TI }} %</td></tr>
-        <tr><td>SR</td><td class="value">{{ SR }}</td></tr>
+        <tr><th>Property</th><th>Value</th></tr>
+        <tr><td>Manufacturer</td><td class="value">{{ luminaire.manufacturer }}</td></tr>
+        <tr><td>Model</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
+        <tr><td>Optic family</td><td class="value">{{ luminaire.optic_family }}</td></tr>
+        <tr><td>Power</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
+        <tr><td>Luminous flux</td><td class="value">{{ "{:,.0f}".format(luminaire.flux) }} lm</td></tr>
+        <tr><td>Efficiency</td><td class="value">{{ "%.1f"|format(luminaire.efficiency) }} lm/W</td></tr>
+        <tr><td>LOR / LORL</td><td class="value">{{ "%.0f"|format(luminaire.LORL) }} %</td></tr>
+      </table>
+      <div class="technical-note">
+        Photometric planes are rendered as scalable SVG from the selected LDT file. The red plane identifies C0-180 and the blue plane identifies C90-270. Radial labels are separated from the curves to keep the graph readable in PDF.
+      </div>
+    </div>
+    <div class="chart-card polar-card" style="margin-top: 12px;">{{ polar_svg }}</div>
+    <div class="footer"><span>Luminaire: {{ luminaire.luminaire_name }}</span><span>Page 2</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Street planning geometry</div></div>
+      <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
+    </header>
+    <h2 class="section-title">Road Planning Data</h2>
+    <div class="planning-profile">
+      <h3>Public road profile</h3>
+      <table>
+        <tr><td>Sidewalk / Pedestrian area 2</td><td class="value">Width: {{ "%.2f"|format(cfg.sidewalk_right) }} m</td></tr>
+        <tr class="planning-row-highlight"><td>Roadway</td><td class="value">Width: {{ "%.2f"|format(cfg.road_width) }} m, traffic lanes: {{ cfg.lanes }}, pavement: {{ cfg.pavement }}</td></tr>
+        <tr><td>Sidewalk / Pedestrian area 1</td><td class="value">Width: {{ "%.2f"|format(cfg.sidewalk_left) }} m</td></tr>
+        <tr><td>Maintenance factor</td><td class="value">{{ "%.2f"|format(cfg.mf) }}</td></tr>
       </table>
     </div>
-  </section>
 
-  {% if isolines_svg %}
-  <section class="section">
-    <div class="section-title">Luminance Distribution</div>
-    <div class="chart-box">
-      <img src="data:image/svg+xml;base64,{{ isolines_svg }}" alt="Luminance isolines">
+    <div class="planning-block">
+      <h3>Luminaire arrangement and street geometry</h3>
+      <div class="planning-drawings">
+        <div class="chart-card">{{ road_plan_svg }}</div>
+        <div class="chart-card">{{ road_section_svg }}</div>
+      </div>
     </div>
-  </section>
-  {% endif %}
 
-  <div class="fine-print">
-    LUX Studio - Generated {{ date }} - Values are calculated from the selected LDT photometry and project geometry.
-  </div>
+    <div class="planning-data-grid">
+      <table>
+        <tr><th>Luminaire / pole</th><th>Value</th></tr>
+        <tr><td>Luminaire</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
+        <tr><td>Luminous flux</td><td class="value">{{ "{:,.0f}".format(luminaire.flux) }} lm</td></tr>
+        <tr><td>Power</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
+        <tr><td>Mounting height (1)</td><td class="value">{{ "%.2f"|format(cfg.height) }} m</td></tr>
+        <tr><td>Pole offset from road edge</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m</td></tr>
+        <tr><td>Overhang / saliente (2)</td><td class="value">{{ "%.2f"|format(cfg.arm_length - cfg.pole_offset if cfg.arm_length > cfg.pole_offset else 0) }} m</td></tr>
+        <tr><td>Head tilt (3)</td><td class="value">{{ "%.0f"|format(cfg.tilt) }}°</td></tr>
+        <tr><td>Bracket length (4)</td><td class="value">{{ "%.2f"|format(cfg.arm_length) }} m</td></tr>
+      </table>
+      <table>
+        <tr><th>Planning relation</th><th>Value</th></tr>
+        <tr><td>Arrangement</td><td class="value">{{ cfg.arrangement }}</td></tr>
+        <tr><td>Spacing between masts</td><td class="value">{{ "%.2f"|format(cfg.spacing) }} m</td></tr>
+        <tr><td>Road / total width</td><td class="value">{{ "%.2f"|format(cfg.road_width) }} m / {{ "%.2f"|format(total_width) }} m</td></tr>
+        <tr><td>Lighting class</td><td class="value">{{ cfg.lighting_class }}</td></tr>
+        <tr><td>Optic / CCT</td><td class="value">{{ luminaire.optic_family }} / {{ cfg.cct }} K</td></tr>
+        <tr><td>Overall result</td><td class="value"><span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></td></tr>
+      </table>
+    </div>
+
+    <div class="relation-strip">
+      <div class="relation-item"><div class="summary-label">Lavg</div><div class="summary-value">{{ Lavg }} cd/m²</div></div>
+      <div class="relation-item"><div class="summary-label">Uo</div><div class="summary-value">{{ Uo }}</div></div>
+      <div class="relation-item"><div class="summary-label">Em</div><div class="summary-value">{{ Eavg }} lux</div></div>
+      <div class="relation-item"><div class="summary-label">Status</div><div class="summary-value"><span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></div></div>
+    </div>
+    <div class="footer"><span>Plan, section, luminaire position and results are shown together</span><span>Page 3</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Lighting performance</div></div>
+      <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
+    </header>
+    <h2 class="section-title">Photometric Results</h2>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Lavg / Lm</div><div class="metric-value">{{ Lavg }}</div></div>
+      <div class="metric"><div class="metric-label">Uo</div><div class="metric-value">{{ Uo }}</div></div>
+      <div class="metric"><div class="metric-label">Ul</div><div class="metric-value">{{ Ul }}</div></div>
+      <div class="metric"><div class="metric-label">TI</div><div class="metric-value">{{ TI }}</div></div>
+      <div class="metric"><div class="metric-label">SR</div><div class="metric-value">{{ SR }}</div></div>
+      <div class="metric"><div class="metric-label">Em</div><div class="metric-value">{{ Eavg }}</div></div>
+      <div class="metric"><div class="metric-label">Emin</div><div class="metric-value">{{ Emin }}</div></div>
+      <div class="metric"><div class="metric-label">Emax</div><div class="metric-value">{{ Emax }}</div></div>
+    </div>
+    {{ results_table }}
+    <div class="verdict">
+      <div class="verdict-title">{{ compliant_label }}</div>
+      <div>
+        {% if compliant %}
+          All checked criteria pass for the selected class and photometry.
+        {% else %}
+          One or more criteria fail. Review spacing, mounting height, optic, power, tilt or road geometry.
+        {% endif %}
+      </div>
+    </div>
+    <div class="footer"><span>Criteria table - {{ standard }}</span><span>Page 4</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Isoline diagrams</div></div>
+      <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
+    </header>
+    <h2 class="section-title">Isolines on Roadway and Pedestrian Areas</h2>
+    {% if iso_luminance_svg %}
+      <div class="chart-card large-chart">{{ iso_luminance_svg }}</div>
+    {% endif %}
+    {% if iso_illuminance_svg %}
+      <div class="chart-card large-chart" style="margin-top: 12px;">{{ iso_illuminance_svg }}</div>
+    {% endif %}
+    {% if not iso_luminance_svg and not iso_illuminance_svg %}
+      <div class="chart-card">No calculation grid is available for isoline rendering.</div>
+    {% endif %}
+    <div class="technical-note">
+      TODO: when separate pedestrian-area calculation grids are introduced, this page should split Sidewalk / Pedestrian area 1 and 2 into dedicated isoline panels. Current diagrams are generated from the roadway calculation grid and project geometry.
+    </div>
+    <div class="footer"><span>Technical isoline SVG diagrams</span><span>Page 5</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Calculation point table</div></div>
+      <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
+    </header>
+    <h2 class="section-title">Calculation Points</h2>
+    {{ point_table }}
+    <div class="technical-note">
+      The table shows the first calculation mesh points used for the technical diagram. Coordinates are expressed in metres along the longitudinal x axis and transverse y axis.
+    </div>
+    <div class="footer"><span>Calculation grid coordinates and values</span><span>Page 6</span></div>
+  </section>
 </body>
 </html>

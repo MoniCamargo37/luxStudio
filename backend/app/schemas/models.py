@@ -14,6 +14,7 @@ class CalculationConfig(BaseModel):
     height: float = Field(ge=4, le=20, default=9, description="Pole height in meters")
     spacing: float = Field(ge=5, le=60, default=30, description="Pole spacing in meters")
     arm_length: float = Field(ge=0, le=5, default=1.5, description="Arm length in meters")
+    pole_offset: float = Field(ge=0, le=5, default=0, description="Distance from road edge to pole axis in meters")
     tilt: float = Field(ge=-30, le=30, default=5, description="Tilt angle in degrees")
     optic_family: str = Field(description="Optic family code, e.g. F151")
     power: float = Field(gt=0, description="Luminaire power in watts")
@@ -31,6 +32,9 @@ class LDTInfo(BaseModel):
     id: str
     filename: str
     luminaire_name: str
+    manufacturer: str = "Unknown"
+    model_family: str = "UNKNOWN"
+    cct: int = 4000
     optic_family: str
     power: float
     flux: float

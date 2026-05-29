@@ -2,6 +2,9 @@ export interface LDTInfo {
   id: string;
   filename: string;
   luminaire_name: string;
+  manufacturer: string;
+  model_family: string;
+  cct: number;
   optic_family: string;
   power: number;
   flux: number;

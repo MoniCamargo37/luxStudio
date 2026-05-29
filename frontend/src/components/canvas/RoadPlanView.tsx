@@ -2,7 +2,7 @@ import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 
 const RoadPlanView: React.FC = () => {
-  const { road_width, sidewalk_left, sidewalk_right, lanes, spacing, arrangement, height } = useConfigStore();
+  const { road_width, sidewalk_left, sidewalk_right, lanes, spacing, arrangement, height, pole_offset } = useConfigStore();
 
   const W = 500;
   const H = 230;
@@ -35,8 +35,8 @@ const RoadPlanView: React.FC = () => {
 
   const lumY = (side: 'top' | 'bottom' | 'center') => {
     if (side === 'center') return centerY;
-    if (side === 'top') return Math.max(1, swlY + swlH * 0.5);
-    return Math.min(H - 1, swrY + swrH * 0.5);
+    if (side === 'top') return Math.max(1, roadY - pole_offset * scaleY);
+    return Math.min(H - 1, roadY + roadH + pole_offset * scaleY);
   };
 
   return (

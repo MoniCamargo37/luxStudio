@@ -1,4 +1,4 @@
-from salvi_lighting import evaluate, ME_REQ, P_REQ, Photometry
+from ..salvi_lighting import evaluate, ME_REQ, P_REQ, Photometry
 from ..schemas.models import CalculationConfig, CalculationResult, CriterionResult, LDTInfo
 from .ldt_loader import get_ldt_by_id, get_photometry
 
@@ -22,6 +22,9 @@ def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult
             id=ldt_info["id"],
             filename=ldt_info["filename"],
             luminaire_name=ldt_info["luminaire_name"],
+            manufacturer=ldt_info.get("manufacturer", "Unknown"),
+            model_family=ldt_info.get("model_family", "UNKNOWN"),
+            cct=ldt_info.get("cct", config.cct),
             optic_family=ldt_info["optic_family"],
             power=ldt_info["power"],
             flux=ldt_info["flux"],
@@ -41,12 +44,13 @@ def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult
 
 
 def _config_to_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
+    effective_overhang = max(config.arm_length - config.pole_offset, 0.0)
     return {
         "arrangement": config.arrangement,
         "h": config.height,
         "S": config.spacing,
         "W": config.road_width,
-        "arm": config.arm_length,
+        "arm": effective_overhang,
         "tilt": config.tilt,
         "mf": config.mf,
         "class": config.lighting_class,

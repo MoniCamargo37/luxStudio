@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { BatchCalculationItem, BatchCalculationResponse } from '../../types';
 
 interface BatchResultsPanelProps {
@@ -16,8 +16,34 @@ const metricText = (item: BatchCalculationItem) => {
 
 const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pass' | 'fail'>('all');
+  const [luminaireFilter, setLuminaireFilter] = useState('all');
   const successful = batch.items.filter(item => item.result && item.config);
   const failed = batch.items.filter(item => item.error);
+  const passCount = successful.filter(item => item.result?.compliant).length;
+  const failCount = successful.length - passCount;
+
+  const luminaires = useMemo(() => {
+    return Array.from(new Set(
+      successful
+        .map(item => item.result?.luminaire.luminaire_name)
+        .filter((name): name is string => Boolean(name))
+    )).sort((a, b) => a.localeCompare(b));
+  }, [successful]);
+
+  const filteredItems = useMemo(() => {
+    return successful.filter(item => {
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'pass' && item.result?.compliant) ||
+        (statusFilter === 'fail' && !item.result?.compliant);
+      const matchesLuminaire =
+        luminaireFilter === 'all' ||
+        item.result?.luminaire.luminaire_name === luminaireFilter;
+
+      return matchesStatus && matchesLuminaire;
+    });
+  }, [successful, statusFilter, luminaireFilter]);
 
   const downloadOutput = async (item: BatchCalculationItem, format: 'pdf' | 'excel') => {
     if (!item.config || !item.result) return;
@@ -66,6 +92,40 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
         </div>
       )}
 
+      <div className="px-4 py-3 border-b border-slate-200 bg-white">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label className="space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</span>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value as 'all' | 'pass' | 'fail')}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="all">All ({successful.length})</option>
+              <option value="pass">PASS ({passCount})</option>
+              <option value="fail">FAIL ({failCount})</option>
+            </select>
+          </label>
+
+          <label className="space-y-1 sm:col-span-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Luminaire</span>
+            <select
+              value={luminaireFilter}
+              onChange={e => setLuminaireFilter(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="all">All luminaires</option>
+              {luminaires.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-2 text-xs text-slate-400">
+          Showing {filteredItems.length} of {successful.length} calculated models
+        </div>
+      </div>
+
       <div className="max-h-[620px] overflow-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-slate-100 text-slate-600 z-10">
@@ -79,11 +139,11 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
             </tr>
           </thead>
           <tbody>
-            {successful.map(item => (
+            {filteredItems.map(item => (
               <tr key={`${item.row}-${item.model_id}`} className="border-t border-slate-100 hover:bg-slate-50">
                 <td className="px-3 py-2 font-medium text-slate-700">{item.model_id}</td>
                 <td className="px-3 py-2 text-slate-500">
-                  {item.config?.arrangement} · h {item.config?.height} · S {item.config?.spacing}
+                  {item.config?.arrangement} - h {item.config?.height} - S {item.config?.spacing}
                 </td>
                 <td className="px-3 py-2 text-slate-500">{item.result?.luminaire.luminaire_name}</td>
                 <td className="px-3 py-2 text-slate-500">{metricText(item)}</td>
@@ -112,6 +172,13 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
                 </td>
               </tr>
             ))}
+            {filteredItems.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
+                  No results match the selected filters.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
