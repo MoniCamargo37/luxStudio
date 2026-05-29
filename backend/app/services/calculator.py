@@ -8,10 +8,21 @@ def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult
     if photometry is None:
         raise ValueError(f"LDT not found: {ldt_id}")
 
-    cfg = _config_to_cfg(config, photometry)
-    result = evaluate(cfg, photometry, flux_scale=1.0, road=config.pavement)
-
     ldt_info = get_ldt_by_id(ldt_id)
+    if ldt_info is None:
+        raise ValueError(f"LDT metadata not found: {ldt_id}")
+
+    return run_calculation_with_photometry(config, photometry, ldt_info, flux_scale=1.0)
+
+
+def run_calculation_with_photometry(
+    config: CalculationConfig,
+    photometry: Photometry,
+    ldt_info: dict,
+    flux_scale: float = 1.0,
+) -> CalculationResult:
+    cfg = _config_to_cfg(config, photometry)
+    result = evaluate(cfg, photometry, flux_scale=flux_scale, road=config.pavement)
     criteria = _build_criteria(result)
 
     return CalculationResult(

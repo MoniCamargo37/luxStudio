@@ -21,7 +21,7 @@ const uniqueLdts = (items: LDTInfo[]) => {
 };
 
 const LuminairePanel: React.FC = () => {
-  const { optic_family, setOpticFamily, power, setPower, cct, setCct } = useConfigStore();
+  const { optic_family, setOpticFamily, power, setPower, cct, setCct, setSelectedLdt } = useConfigStore();
   const [catalog, setCatalog] = useState<LDTInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [manufacturer, setManufacturer] = useState('');
@@ -93,9 +93,7 @@ const LuminairePanel: React.FC = () => {
     setSelectedPower(matching.power);
     setSelectedLens(matching.optic_family);
     setSelectedId(matching.id);
-    setOpticFamily(matching.optic_family);
-    setPower(matching.power);
-    setCct(matching.cct);
+    setSelectedLdt(matching);
   }, [catalog]);
 
   useEffect(() => {
@@ -122,9 +120,7 @@ const LuminairePanel: React.FC = () => {
     const selected = options.find(item => item.id === selectedId) || options[0];
     if (!selected) return;
     setSelectedId(selected.id);
-    setOpticFamily(selected.optic_family);
-    setPower(selected.power);
-    setCct(selected.cct);
+    setSelectedLdt(selected);
   }, [options, selectedId]);
 
   const selected = options.find(item => item.id === selectedId) || catalog.find(item => item.id === selectedId);

@@ -1,12 +1,14 @@
 import re
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from typing import Optional
 
 from fastapi import APIRouter, File, UploadFile
 from openpyxl import load_workbook
 
 from ..schemas.models import BatchCalculationItem, BatchCalculationResponse, CalculationConfig, CalculationResult
-from ..services.calculator import run_calculation
+from ..services.calculator import run_calculation, run_calculation_with_photometry
+from ..services.ldt_loader import get_all_ldts, get_photometry
 from ..services.ldt_matcher import require_ldt_for_config
 
 router = APIRouter()
@@ -17,6 +19,102 @@ async def calculate(config: CalculationConfig):
     """Run a full CIE 140 / EN 13201 calculation for the given configuration."""
     ldt_id, _ = require_ldt_for_config(config)
     return run_calculation(config, ldt_id)
+
+
+@router.post("/formula-ldt-batch", response_model=BatchCalculationResponse)
+async def calculate_formula_ldt_batch(config: CalculationConfig):
+    """Calculate catalog variants by scaling the selected LDT photometry as a base."""
+    base_ldt_id, base_ldt = require_ldt_for_config(config)
+    base_photometry = get_photometry(base_ldt_id)
+    if base_photometry is None:
+        raise ValueError(f"LDT not found: {base_ldt_id}")
+
+    base_key = (
+        base_ldt.get("manufacturer", "Unknown"),
+        base_ldt.get("model_family", "UNKNOWN"),
+        base_ldt.get("optic_family", config.optic_family),
+    )
+    variants = [
+        item for item in get_all_ldts()
+        if (
+            item.get("manufacturer", "Unknown"),
+            item.get("model_family", "UNKNOWN"),
+            item.get("optic_family", config.optic_family),
+        ) == base_key
+    ]
+    variants.sort(key=lambda item: (
+        int(item.get("cct", config.cct)),
+        float(item.get("power", 0)),
+        float(item.get("flux", 0)),
+        item.get("filename", ""),
+    ))
+
+    def compare_results(formula_result: CalculationResult, real_result: CalculationResult):
+        metric_keys = ["Eavg", "Emin"] if formula_result.mode == "P" else ["Lavg", "Uo", "Ul", "TI", "SR"]
+        comparison: dict[str, Optional[float]] = {}
+        deviations = []
+        for key in metric_keys:
+            formula_value = getattr(formula_result, key, None)
+            real_value = getattr(real_result, key, None)
+            if formula_value is None or real_value is None:
+                comparison[f"{key}_formula"] = formula_value
+                comparison[f"{key}_real"] = real_value
+                comparison[f"{key}_deviation_pct"] = None
+                continue
+
+            comparison[f"{key}_formula"] = float(formula_value)
+            comparison[f"{key}_real"] = float(real_value)
+            if abs(float(real_value)) < 1e-9:
+                deviation = 0.0 if abs(float(formula_value)) < 1e-9 else None
+            else:
+                deviation = ((float(formula_value) - float(real_value)) / float(real_value)) * 100.0
+            comparison[f"{key}_deviation_pct"] = deviation
+            if deviation is not None:
+                deviations.append(abs(deviation))
+
+        comparison["max_abs_deviation_pct"] = max(deviations) if deviations else None
+        comparison["formula_compliant"] = 1.0 if formula_result.compliant else 0.0
+        comparison["real_compliant"] = 1.0 if real_result.compliant else 0.0
+        return comparison
+
+    items = []
+    for index, variant in enumerate(variants, start=1):
+        try:
+            variant_config = CalculationConfig(**{
+                **config.model_dump(),
+                "ldt_id": variant.get("id"),
+                "manufacturer": variant.get("manufacturer"),
+                "model_family": variant.get("model_family"),
+                "optic_family": variant.get("optic_family", config.optic_family),
+                "power": variant.get("power", config.power),
+                "cct": variant.get("cct", config.cct),
+            })
+            base_flux = float(getattr(base_photometry, "flux", 0) or 0)
+            variant_flux = float(variant.get("flux", base_flux) or base_flux)
+            flux_scale = variant_flux / base_flux if base_flux > 0 else 1.0
+            formula_result = run_calculation_with_photometry(variant_config, base_photometry, variant, flux_scale=flux_scale)
+            real_result = run_calculation(variant_config, variant["id"])
+            items.append(BatchCalculationItem(
+                model_id=f"{variant.get('model_family', 'LDT')} {variant.get('optic_family', '')} {variant.get('cct', config.cct)}K {variant.get('power', 0):g}W",
+                row=index,
+                config=variant_config,
+                result=formula_result,
+                real_result=real_result,
+                comparison=compare_results(formula_result, real_result),
+                source="formula_vs_real_ldt",
+            ))
+        except Exception as exc:
+            items.append(BatchCalculationItem(
+                model_id=f"{variant.get('model_family', 'LDT')} {variant.get('optic_family', '')} {variant.get('cct', config.cct)}K {variant.get('power', 0):g}W",
+                row=index,
+                error=str(exc),
+            ))
+
+    return BatchCalculationResponse(
+        filename=f"Formula test from {base_ldt.get('filename', base_ldt_id)}",
+        count=len(items),
+        items=items,
+    )
 
 
 def _float(value, default=0.0):

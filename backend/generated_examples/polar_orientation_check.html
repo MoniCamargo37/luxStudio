@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Road Lighting Report - CLAP M C35 30K F151 VDR SPUW 100W</title>
+<style>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.8pt;
+    line-height: 1.35;
+    color: #172033;
+    background: #fff;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 13mm 15mm 12mm;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 16px;
+    padding-bottom: 9px;
+    border-bottom: 3px solid #1e40af;
+    margin-bottom: 12px;
+  }
+  .brand {
+    font-size: 21pt;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: .15px;
+  }
+  .subtitle {
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 9.4pt;
+  }
+  .badge {
+    min-width: 74px;
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: #fff;
+    text-align: center;
+    background: #ef4444;
+    font-weight: 900;
+    letter-spacing: .55px;
+  }
+  .meta { margin-top: 6px; text-align: right; color: #64748b; font-size: 7.8pt; }
+  .footer {
+    position: absolute;
+    left: 15mm;
+    right: 15mm;
+    bottom: 7mm;
+    display: flex;
+    justify-content: space-between;
+    color: #94a3b8;
+    font-size: 7.2pt;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 5px;
+  }
+  h1, h2, h3 { margin: 0; color: #0f172a; }
+  .section-title {
+    font-size: 13.5pt;
+    font-weight: 900;
+    color: #0f172a;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #1e40af;
+    margin: 0 0 10px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .summary-card {
+    border: 1px solid #dbe3ef;
+    border-radius: 7px;
+    background: #f8fafc;
+    padding: 8px 9px;
+    min-height: 51px;
+  }
+  .summary-label {
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    font-size: 7.1pt;
+    margin-bottom: 4px;
+  }
+  .summary-value {
+    color: #0f172a;
+    font-size: 9pt;
+    font-weight: 800;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
+    align-items: start;
+  }
+  .chart-card {
+    border: 1px solid #dbe3ef;
+    border-radius: 7px;
+    background: #fbfdff;
+    padding: 7px;
+    overflow: hidden;
+  }
+  .chart-card svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .large-chart {
+    padding: 4px;
+  }
+  .polar-card {
+    height: 178mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .polar-card svg {
+    width: 94%;
+    max-height: 166mm;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    background: #1e40af;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: .42px;
+    font-size: 7.25pt;
+    padding: 6px 7px;
+    text-align: left;
+  }
+  td {
+    border-bottom: 1px solid #dbe3ef;
+    padding: 5.5px 7px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .value { font-weight: 800; color: #0f172a; }
+  .ok { color: #059669; font-weight: 900; }
+  .fail { color: #dc2626; font-weight: 900; }
+  .result-row td {
+    background: #eef4ff !important;
+    font-weight: 900;
+  }
+  .criteria-table td:nth-child(2),
+  .criteria-table td:nth-child(3),
+  .criteria-table td:nth-child(4) {
+    text-align: center;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0 12px;
+  }
+  .metric {
+    border: 1px solid #dbe3ef;
+    border-radius: 7px;
+    padding: 8px;
+    background: #f8fafc;
+  }
+  .metric-label { color: #64748b; font-size: 7.4pt; text-transform: uppercase; letter-spacing: .4px; }
+  .metric-value { margin-top: 3px; font-size: 13pt; font-weight: 900; color: #0f172a; }
+  .verdict {
+    margin-top: 12px;
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #f8fafc;
+  }
+  .verdict-title {
+    color: #ef4444;
+    font-size: 20pt;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .table-note {
+    color: #64748b;
+    font-size: 8pt;
+    margin: 4px 0 8px;
+  }
+  .point-table th,
+  .point-table td {
+    padding: 4px 5px;
+    text-align: center;
+    font-size: 7.1pt;
+  }
+  .technical-note {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 7.8pt;
+  }
+  .planning-profile {
+    margin-bottom: 10px;
+  }
+  .planning-profile h3,
+  .planning-block h3 {
+    font-size: 10.5pt;
+    margin: 0 0 6px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .planning-profile table td {
+    padding: 5px 7px;
+  }
+  .planning-row-highlight td {
+    background: #eef2f7 !important;
+  }
+  .planning-drawings {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .planning-drawings .chart-card {
+    padding: 4px 6px;
+  }
+  .planning-data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .relation-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin-top: 10px;
+  }
+  .relation-item {
+    border: 1px solid #dbe3ef;
+    background: #f8fafc;
+    border-radius: 7px;
+    padding: 7px;
+  }
+  .relation-item .summary-label { margin-bottom: 2px; }
+</style>
+</head>
+<body>
+  <section class="page">
+    <header class="header">
+      <div>
+        <div class="brand">LUX Studio</div>
+        <div class="subtitle">Road Lighting Report - CIE 140 / EN 13201</div>
+      </div>
+      <div>
+        <div class="badge">FAIL</div>
+        <div class="meta">Generated 29/05/2026 17:33</div>
+      </div>
+    </header>
+
+    <h1 class="section-title">Project Summary</h1>
+    <div class="summary-grid">
+      <div class="summary-card"><div class="summary-label">Luminaire</div><div class="summary-value">CLAP M C35 30K F151 VDR SPUW 100W</div></div>
+      <div class="summary-card"><div class="summary-label">Lighting class</div><div class="summary-value">M3</div></div>
+      <div class="summary-card"><div class="summary-label">Arrangement</div><div class="summary-value">Lineal</div></div>
+      <div class="summary-card"><div class="summary-label">Road / height</div><div class="summary-value">7.0 m / 9.0 m</div></div>
+      <div class="summary-card"><div class="summary-label">Maintenance factor</div><div class="summary-value">0.85</div></div>
+      <div class="summary-card"><div class="summary-label">Pavement / CCT</div><div class="summary-value">R3 / 4000 K</div></div>
+    </div>
+
+    <div class="chart-card large-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420">
+  <rect width="900" height="420" fill="white"/>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Transverse section</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">Pole height, bracket arm, luminaire tilt and roadway section</text>
+  <rect x="170.0" y="300" width="84.0" height="48" fill="#d8dee7"/>
+  <rect x="254.0" y="300" width="392.0" height="48" fill="#59616c"/>
+  <rect x="646.0" y="300" width="84.0" height="48" fill="#d8dee7"/>
+  <line x1="450.0" y1="308" x2="450.0" y2="340" stroke="white" stroke-width="2" stroke-dasharray="7 6"/>
+  <line x1="237.2" y1="300" x2="237.2" y2="74.0" stroke="#263241" stroke-width="9" stroke-linecap="square"/>
+  <rect x="221.2" y="293" width="32" height="10" fill="#263241"/>
+  <line x1="237.2" y1="74.0" x2="321.2" y2="74.0" stroke="#263241" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="182.2" cy="187.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="182.2" y="192.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">1</text>
+  <circle cx="279.2" cy="26.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="279.2" y="31.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">2</text>
+  <g transform="rotate(-5.0 321.2 74.0)">
+    <rect x="321.2" y="65.0" width="58" height="18" rx="3" fill="#2563eb"/>
+    <line x1="326.2" y1="86.0" x2="372.2" y2="86.0" stroke="#60a5fa" stroke-width="2"/>
+  </g>
+  <circle cx="391.2" cy="42.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="391.2" y="47.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">3</text>
+  <circle cx="329.2" cy="114.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="329.2" y="119.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">4</text>
+  <path d="M 393.2 74.0 A 45 45 0 0 1 392.9 67.7" fill="none" stroke="#ef4444" stroke-width="1.6"/>
+  <text x="403.2" y="62.0" font-size="12" font-weight="800" fill="#ef4444">5Â°</text>
+  <text x="255.2" y="282.0" font-size="11" font-weight="700" fill="#475569">pole at road edge, luminaire projected over carriageway</text>
+  <line x1="254.0" y1="366.0" x2="646.0" y2="366.0" stroke="#334155" stroke-width="1"/><polygon points="254.0,366.0 261.0,362.0 261.0,370.0" fill="#334155"/><polygon points="646.0,366.0 639.0,362.0 639.0,370.0" fill="#334155"/><text x="450.0" y="383.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Roadway = 7.0 m</text><line x1="170.0" y1="390.0" x2="730.0" y2="390.0" stroke="#334155" stroke-width="1"/><polygon points="170.0,390.0 177.0,386.0 177.0,394.0" fill="#334155"/><polygon points="730.0,390.0 723.0,386.0 723.0,394.0" fill="#334155"/><text x="450.0" y="407.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Total width = 10.0 m</text><line x1="203.2" y1="74.0" x2="203.2" y2="300.0" stroke="#334155" stroke-width="1"/><line x1="198.2" y1="74.0" x2="208.2" y2="74.0" stroke="#334155" stroke-width="1"/><line x1="198.2" y1="300.0" x2="208.2" y2="300.0" stroke="#334155" stroke-width="1"/><text x="195.2" y="187.0" transform="rotate(-90 195.2 187.0)" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Mounting height = 9.0 m</text><line x1="237.2" y1="52.0" x2="321.2" y2="52.0" stroke="#334155" stroke-width="1"/><polygon points="237.2,52.0 244.2,48.0 244.2,56.0" fill="#334155"/><polygon points="321.2,52.0 314.2,48.0 314.2,56.0" fill="#334155"/><text x="279.2" y="69.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Overhang / arm = 1.5 m</text><line x1="237.2" y1="278.0" x2="254.0" y2="278.0" stroke="#334155" stroke-width="1"/><polygon points="237.2,278.0 244.2,274.0 244.2,282.0" fill="#334155"/><polygon points="254.0,278.0 247.0,274.0 247.0,282.0" fill="#334155"/><text x="245.6" y="295.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Pole offset = 0.30 m</text>
+</svg>
+</div>
+
+    <div class="two-col" style="margin-top: 12px;">
+      <table>
+        <tr><th>Planning parameter</th><th>Value</th></tr>
+        <tr><td>Total width</td><td class="value">10.0 m</td></tr>
+        <tr><td>Roadway width</td><td class="value">7.0 m</td></tr>
+        <tr><td>Sidewalks</td><td class="value">1.5 m / 1.5 m</td></tr>
+        <tr><td>Spacing</td><td class="value">30.0 m</td></tr>
+        <tr><td>Pole offset / arm / tilt</td><td class="value">0.30 m / 1.5 m / 5°</td></tr>
+      </table>
+      <div class="verdict" style="margin-top: 0;">
+        <div class="verdict-title">FAIL</div>
+        <div>
+          
+            The current road lighting configuration does not satisfy every checked criterion for class M3.
+          
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>LUX Studio technical report</span><span>Page 1</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Luminaire photometry</div></div>
+      <div><div class="badge">FAIL</div><div class="meta">29/05/2026 17:33</div></div>
+    </header>
+    <h2 class="section-title">Luminaire</h2>
+    <div class="two-col">
+      <table>
+        <tr><th>Property</th><th>Value</th></tr>
+        <tr><td>Manufacturer</td><td class="value">Salvi</td></tr>
+        <tr><td>Model</td><td class="value">CLAP M C35 30K F151 VDR SPUW 100W</td></tr>
+        <tr><td>Optic family</td><td class="value">F151</td></tr>
+        <tr><td>Power</td><td class="value">100 W</td></tr>
+        <tr><td>Luminous flux</td><td class="value">15,478 lm</td></tr>
+        <tr><td>Efficiency</td><td class="value">154.8 lm/W</td></tr>
+        <tr><td>LOR / LORL</td><td class="value">100 %</td></tr>
+      </table>
+      <div class="technical-note">
+        Photometric planes are rendered as scalable SVG from the selected LDT file. The red plane identifies C0-180 and the blue plane identifies C90-270. Radial labels are separated from the curves to keep the graph readable in PDF.
+      </div>
+    </div>
+    <div class="chart-card polar-card" style="margin-top: 12px;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 500" role="img" aria-label="Polar photometry diagram">
+  <rect x="0" y="0" width="620" height="500" fill="white"/>
+  <text x="28" y="30" font-size="15" font-weight="800" fill="#0f172a">I (cd/klm) - CLAP M C35 30K F151 VDR SPUW 100W</text>
+  <text x="28" y="50" font-size="10.5" fill="#64748b">Photometric distribution, normalized per 1000 lm</text>
+  <text x="28" y="68" font-size="10.5" fill="#64748b">Radial scale: 100, 200, 300, 400 cd/klm</text>
+  <g><circle cx="300" cy="260" r="29.7" fill="none" stroke="#d8dee8" stroke-width="1"/><rect x="334.0" y="257.2" width="34" height="15" rx="2" fill="white" opacity="0.94"/><text x="338.0" y="268.2" font-size="11" fill="#475569">100</text><circle cx="300" cy="260" r="59.3" fill="none" stroke="#d8dee8" stroke-width="1"/><rect x="363.0" y="263.3" width="34" height="15" rx="2" fill="white" opacity="0.94"/><text x="367.0" y="274.3" font-size="11" fill="#475569">200</text><circle cx="300" cy="260" r="89.0" fill="none" stroke="#d8dee8" stroke-width="1"/><rect x="392.1" y="269.5" width="34" height="15" rx="2" fill="white" opacity="0.94"/><text x="396.1" y="280.5" font-size="11" fill="#475569">300</text><circle cx="300" cy="260" r="118.7" fill="none" stroke="#d8dee8" stroke-width="1"/><rect x="421.1" y="275.7" width="34" height="15" rx="2" fill="white" opacity="0.94"/><text x="425.1" y="286.7" font-size="11" fill="#475569">400</text><line x1="300.0" y1="260.0" x2="300.0" y2="438.0" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="346.1" y2="431.9" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="389.0" y2="414.2" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="425.9" y2="385.9" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="454.2" y2="349.0" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="471.9" y2="306.1" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="478.0" y2="260.0" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="471.9" y2="213.9" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="454.2" y2="171.0" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="425.9" y2="134.1" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="389.0" y2="105.8" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="346.1" y2="88.1" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="300.0" y2="82.0" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="253.9" y2="88.1" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="211.0" y2="105.8" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="174.1" y2="134.1" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="145.8" y2="171.0" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="128.1" y2="213.9" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="122.0" y2="260.0" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="128.1" y2="306.1" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="145.8" y2="349.0" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="174.1" y2="385.9" stroke="#cbd5e1" stroke-width="1.1"/><line x1="300.0" y1="260.0" x2="211.0" y2="414.2" stroke="#e7ebf1" stroke-width="0.7"/><line x1="300.0" y1="260.0" x2="253.9" y2="431.9" stroke="#e7ebf1" stroke-width="0.7"/></g>
+  <path d="M 300.0 329.0 L 301.2 329.1 L 302.4 329.2 L 303.6 329.3 L 304.9 329.5 L 306.1 329.8 L 307.4 330.1 L 308.6 330.3 L 309.9 330.3 L 311.1 330.1 L 312.3 329.9 L 313.5 329.6 L 314.7 329.2 L 315.9 328.9 L 317.1 328.5 L 318.2 328.1 L 319.4 327.8 L 320.6 327.5 L 321.9 327.5 L 323.3 327.8 L 324.8 328.1 L 326.3 328.5 L 327.7 328.6 L 329.2 328.9 L 330.7 329.1 L 332.3 329.2 L 333.9 329.4 L 335.5 329.6 L 337.1 329.7 L 338.8 330.1 L 340.7 330.4 L 342.5 330.7 L 344.5 331.2 L 346.5 331.6 L 348.4 331.7 L 350.2 331.7 L 352.0 331.6 L 353.7 331.2 L 355.4 330.9 L 356.8 330.2 L 358.3 329.5 L 359.6 328.5 L 360.7 327.4 L 361.7 326.2 L 362.7 324.9 L 363.7 323.7 L 364.6 322.4 L 365.5 321.1 L 366.5 319.9 L 367.5 318.7 L 368.5 317.4 L 369.5 316.3 L 370.7 315.3 L 372.1 314.3 L 373.7 313.5 L 375.4 312.8 L 377.2 312.1 L 379.2 311.4 L 381.3 310.8 L 383.4 310.1 L 385.4 309.3 L 387.2 308.3 L 388.6 307.1 L 389.4 305.5 L 389.4 303.6 L 389.0 301.5 L 388.6 299.4 L 387.6 297.2 L 385.8 294.7 L 383.6 292.1 L 381.1 289.5 L 377.9 286.8 L 373.8 284.0 L 367.2 280.5 L 359.5 277.1 L 351.6 273.8 L 342.7 270.7 L 333.1 267.6 L 323.3 264.9 L 316.1 263.1 L 311.7 262.1 L 307.5 261.2 L 302.9 260.4 L 300.9 260.1 L 300.6 260.1 L 300.5 260.0 L 300.3 260.0 L 300.2 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.1 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.8 260.0 L 299.7 260.0 L 299.5 260.0 L 299.4 260.1 L 299.1 260.1 L 297.1 260.4 L 292.5 261.2 L 288.3 262.1 L 283.9 263.1 L 276.7 264.9 L 266.9 267.6 L 257.3 270.7 L 248.4 273.8 L 240.5 277.1 L 232.8 280.5 L 226.2 284.0 L 222.1 286.8 L 218.9 289.5 L 216.4 292.1 L 214.2 294.7 L 212.4 297.2 L 211.4 299.4 L 211.0 301.5 L 210.6 303.6 L 210.6 305.5 L 211.4 307.1 L 212.8 308.3 L 214.6 309.3 L 216.6 310.1 L 218.7 310.8 L 220.8 311.4 L 222.8 312.1 L 224.6 312.8 L 226.3 313.5 L 227.9 314.3 L 229.3 315.3 L 230.5 316.3 L 231.5 317.4 L 232.5 318.7 L 233.5 319.9 L 234.5 321.1 L 235.4 322.4 L 236.3 323.7 L 237.3 324.9 L 238.3 326.2 L 239.3 327.4 L 240.4 328.5 L 241.7 329.5 L 243.2 330.2 L 244.6 330.9 L 246.3 331.2 L 248.0 331.6 L 249.8 331.7 L 251.6 331.7 L 253.5 331.6 L 255.5 331.2 L 257.5 330.7 L 259.3 330.4 L 261.2 330.1 L 262.9 329.7 L 264.5 329.6 L 266.1 329.4 L 267.7 329.2 L 269.3 329.1 L 270.8 328.9 L 272.3 328.6 L 273.7 328.5 L 275.2 328.1 L 276.7 327.8 L 278.1 327.5 L 279.4 327.5 L 280.6 327.8 L 281.8 328.1 L 282.9 328.5 L 284.1 328.9 L 285.3 329.2 L 286.5 329.6 L 287.7 329.9 L 288.9 330.1 L 290.1 330.3 L 291.4 330.3 L 292.6 330.1 L 293.9 329.8 L 295.1 329.5 L 296.4 329.3 L 297.6 329.2 L 298.8 329.1 Z" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M 300.0 329.4 L 301.3 334.7 L 302.8 340.5 L 304.5 346.1 L 306.4 351.8 L 308.5 357.6 L 310.9 363.4 L 313.3 368.7 L 316.1 374.3 L 318.9 379.5 L 321.9 384.0 L 325.0 388.8 L 328.3 393.1 L 331.6 397.0 L 334.8 399.7 L 338.0 401.7 L 341.0 403.1 L 343.9 403.8 L 346.8 404.0 L 349.5 403.7 L 351.9 402.7 L 354.3 401.4 L 356.2 399.1 L 358.2 397.1 L 359.9 394.5 L 361.5 391.9 L 363.1 389.3 L 364.5 386.6 L 365.7 383.6 L 366.9 380.6 L 367.5 377.0 L 367.7 372.7 L 367.6 368.3 L 367.0 363.1 L 365.6 357.2 L 364.3 351.8 L 362.6 346.1 L 360.8 340.7 L 359.2 335.8 L 357.4 330.9 L 354.8 325.3 L 350.8 318.4 L 347.5 312.7 L 345.0 308.2 L 342.9 304.5 L 341.2 301.2 L 339.6 298.3 L 338.1 295.5 L 336.6 293.0 L 335.2 290.6 L 334.0 288.5 L 332.8 286.5 L 331.6 284.7 L 330.5 283.0 L 329.4 281.4 L 328.3 279.8 L 327.0 278.2 L 325.8 276.7 L 324.7 275.5 L 323.9 274.3 L 323.0 273.3 L 321.9 272.1 L 321.0 271.1 L 318.0 269.2 L 315.0 267.3 L 311.4 265.3 L 308.3 263.7 L 307.2 263.1 L 306.8 262.7 L 306.4 262.5 L 306.0 262.2 L 305.6 261.9 L 305.5 261.8 L 305.2 261.6 L 304.6 261.3 L 304.3 261.1 L 303.9 261.0 L 303.6 260.8 L 303.2 260.7 L 302.9 260.6 L 302.4 260.4 L 302.1 260.3 L 301.8 260.3 L 301.4 260.2 L 301.1 260.1 L 300.7 260.1 L 300.4 260.0 L 300.2 260.0 L 300.2 260.0 L 300.1 260.0 L 300.1 260.0 L 300.1 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.8 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 300.0 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 259.9 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 299.9 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 300.0 260.0 L 299.9 260.0 L 299.9 260.0 L 299.7 260.0 L 299.5 260.1 L 299.3 260.1 L 299.0 260.2 L 298.6 260.3 L 298.2 260.4 L 297.8 260.5 L 297.3 260.7 L 296.8 260.9 L 296.0 261.1 L 295.3 261.4 L 294.2 261.9 L 292.0 262.7 L 289.7 263.8 L 288.8 264.3 L 289.0 264.5 L 288.9 264.7 L 289.8 264.6 L 290.7 264.3 L 291.4 264.2 L 291.8 264.2 L 292.1 264.2 L 292.3 264.3 L 292.3 264.5 L 292.2 264.7 L 292.1 264.9 L 292.0 265.2 L 291.8 265.5 L 291.7 265.8 L 291.4 266.2 L 291.2 266.7 L 290.9 267.1 L 290.8 267.4 L 290.7 267.8 L 290.8 268.0 L 290.9 268.2 L 291.1 268.3 L 291.3 268.4 L 291.5 268.5 L 291.6 268.7 L 291.7 268.9 L 291.9 269.0 L 292.0 269.1 L 292.2 269.3 L 292.3 269.5 L 292.4 269.8 L 292.6 269.9 L 292.8 270.0 L 293.0 270.0 L 293.2 270.1 L 293.3 270.3 L 293.4 270.5 L 293.6 270.7 L 293.7 270.9 L 293.8 271.3 L 293.7 271.8 L 293.7 272.5 L 293.4 273.5 L 293.2 274.6 L 293.0 275.8 L 292.8 277.0 L 292.6 278.3 L 292.6 279.3 L 292.6 280.2 L 292.7 281.3 L 292.7 282.4 L 292.8 283.5 L 293.0 284.5 L 293.1 285.6 L 293.4 286.5 L 293.7 287.5 L 293.9 288.8 L 294.1 290.3 L 294.3 292.1 L 294.6 294.0 L 294.9 296.5 L 295.2 299.3 L 295.5 302.6 L 296.0 305.9 L 296.5 310.0 L 297.2 314.2 L 297.9 318.9 L 298.9 323.9 Z" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linejoin="round"/>
+  <circle cx="300" cy="260" r="3" fill="#111827"/>
+  <g><text x="300.0" y="442.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">0&#176;</text><text x="425.9" y="389.9" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">45&#176;</text><text x="478.0" y="264.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">90&#176;</text><text x="425.9" y="138.1" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">135&#176;</text><text x="300.0" y="86.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">180&#176;</text><text x="174.1" y="138.1" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">225&#176;</text><text x="122.0" y="264.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">270&#176;</text><text x="174.1" y="389.9" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">315&#176;</text></g>
+  <g transform="translate(430 36)">
+    <rect x="0" y="0" width="150" height="54" rx="6" fill="white" stroke="#dbe3ef"/>
+    <line x1="14" y1="18" x2="48" y2="18" stroke="#ef4444" stroke-width="2.8"/>
+    <text x="58" y="22" font-size="12" font-weight="700" fill="#334155">C0-180</text>
+    <line x1="14" y1="38" x2="48" y2="38" stroke="#2563eb" stroke-width="2.8"/>
+    <text x="58" y="42" font-size="12" font-weight="700" fill="#334155">C90-270</text>
+  </g>
+</svg>
+</div>
+    <div class="footer"><span>Luminaire: CLAP M C35 30K F151 VDR SPUW 100W</span><span>Page 2</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Street planning geometry</div></div>
+      <div><div class="badge">FAIL</div><div class="meta">29/05/2026 17:33</div></div>
+    </header>
+    <h2 class="section-title">Road Planning Data</h2>
+    <div class="planning-profile">
+      <h3>Public road profile</h3>
+      <table>
+        <tr><td>Sidewalk / Pedestrian area 2</td><td class="value">Width: 1.50 m</td></tr>
+        <tr class="planning-row-highlight"><td>Roadway</td><td class="value">Width: 7.00 m, traffic lanes: 2, pavement: R3</td></tr>
+        <tr><td>Sidewalk / Pedestrian area 1</td><td class="value">Width: 1.50 m</td></tr>
+        <tr><td>Maintenance factor</td><td class="value">0.85</td></tr>
+      </table>
+    </div>
+
+    <div class="planning-block">
+      <h3>Luminaire arrangement and street geometry</h3>
+      <div class="planning-drawings">
+        <div class="chart-card">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360">
+  <rect width="900" height="360" fill="white"/>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Street plan view</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">Calculation field, carriageway, pedestrian areas and luminaire positions</text>
+  <rect x="88" y="78.0" width="724" height="210.0" fill="#d7dee8"/>
+  <rect x="88" y="78.0" width="724" height="31.5" fill="#e8edf3"/>
+  <rect x="88" y="109.5" width="724" height="147.0" fill="#59616c"/>
+  <rect x="88" y="256.5" width="724" height="31.5" fill="#e8edf3"/>
+  <line x1="88" y1="183.0" x2="812" y2="183.0" stroke="white" stroke-width="2" stroke-dasharray="16 12"/>
+  <text x="98" y="97.8" font-size="12" font-weight="700" fill="#475569">Sidewalk / Pedestrian area 1</text>
+  <text x="98" y="187.0" font-size="13" font-weight="800" fill="white">Roadway</text>
+  <text x="98" y="276.2" font-size="12" font-weight="700" fill="#475569">Sidewalk / Pedestrian area 2</text>
+  <line x1="319.7" y1="146.2" x2="389.7" y2="146.2" stroke="#f8fafc" stroke-width="2.2"/><polygon points="389.7,146.2 380.7,140.2 380.7,152.2" fill="#f8fafc"/><line x1="580.3" y1="219.8" x2="510.3" y2="219.8" stroke="#f8fafc" stroke-width="2.2"/><polygon points="510.3,219.8 519.3,213.8 519.3,225.8" fill="#f8fafc"/>
+  <line x1="88.0" y1="94.2" x2="88.0" y2="112.2" stroke="#ef4444" stroke-width="3"/><circle cx="88.0" cy="103.2" r="5" fill="#111827"/><line x1="88.0" y1="103.2" x2="88.0" y2="134.7" stroke="#111827" stroke-width="2"/><rect x="75.0" y="129.7" width="26" height="10" rx="2" fill="#2563eb"/><line x1="812.0" y1="94.2" x2="812.0" y2="112.2" stroke="#ef4444" stroke-width="3"/><circle cx="812.0" cy="103.2" r="5" fill="#111827"/><line x1="812.0" y1="103.2" x2="812.0" y2="134.7" stroke="#111827" stroke-width="2"/><rect x="799.0" y="129.7" width="26" height="10" rx="2" fill="#2563eb"/>
+  <line x1="88" y1="296.0" x2="88" y2="309.0" stroke="#111827" stroke-width="1"/>
+  <line x1="812" y1="296.0" x2="812" y2="309.0" stroke="#111827" stroke-width="1"/>
+  <text x="88.0" y="330.0" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">0.00</text>
+  <text x="812.0" y="330.0" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">30.00 m</text>
+  <text x="806.0" y="97.5" text-anchor="end" font-size="11" font-weight="700" fill="#1e40af">mast positions / spacing</text>
+  <line x1="88.0" y1="316.0" x2="812.0" y2="316.0" stroke="#334155" stroke-width="1"/><polygon points="88.0,316.0 95.0,312.0 95.0,320.0" fill="#334155"/><polygon points="812.0,316.0 805.0,312.0 805.0,320.0" fill="#334155"/><text x="450.0" y="333.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Calculation length / spacing = 30.0 m</text><line x1="840.0" y1="109.5" x2="840.0" y2="256.5" stroke="#334155" stroke-width="1"/><line x1="835.0" y1="109.5" x2="845.0" y2="109.5" stroke="#334155" stroke-width="1"/><line x1="835.0" y1="256.5" x2="845.0" y2="256.5" stroke="#334155" stroke-width="1"/><text x="832.0" y="183.0" transform="rotate(-90 832.0 183.0)" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Roadway = 7.0 m</text><line x1="18.0" y1="103.2" x2="18.0" y2="109.5" stroke="#334155" stroke-width="1"/><line x1="13.0" y1="103.2" x2="23.0" y2="103.2" stroke="#334155" stroke-width="1"/><line x1="13.0" y1="109.5" x2="23.0" y2="109.5" stroke="#334155" stroke-width="1"/><text x="10.0" y="106.3" transform="rotate(-90 10.0 106.3)" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Pole offset = 0.30 m</text><line x1="62.0" y1="78.0" x2="62.0" y2="109.5" stroke="#334155" stroke-width="1"/><line x1="57.0" y1="78.0" x2="67.0" y2="78.0" stroke="#334155" stroke-width="1"/><line x1="57.0" y1="109.5" x2="67.0" y2="109.5" stroke="#334155" stroke-width="1"/><text x="54.0" y="93.8" transform="rotate(-90 54.0 93.8)" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">1.5 m</text><line x1="40.0" y1="256.5" x2="40.0" y2="288.0" stroke="#334155" stroke-width="1"/><line x1="35.0" y1="256.5" x2="45.0" y2="256.5" stroke="#334155" stroke-width="1"/><line x1="35.0" y1="288.0" x2="45.0" y2="288.0" stroke="#334155" stroke-width="1"/><text x="32.0" y="272.2" transform="rotate(-90 32.0 272.2)" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">1.5 m</text>
+</svg>
+</div>
+        <div class="chart-card">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420">
+  <rect width="900" height="420" fill="white"/>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Transverse section</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">Pole height, bracket arm, luminaire tilt and roadway section</text>
+  <rect x="170.0" y="300" width="84.0" height="48" fill="#d8dee7"/>
+  <rect x="254.0" y="300" width="392.0" height="48" fill="#59616c"/>
+  <rect x="646.0" y="300" width="84.0" height="48" fill="#d8dee7"/>
+  <line x1="450.0" y1="308" x2="450.0" y2="340" stroke="white" stroke-width="2" stroke-dasharray="7 6"/>
+  <line x1="237.2" y1="300" x2="237.2" y2="74.0" stroke="#263241" stroke-width="9" stroke-linecap="square"/>
+  <rect x="221.2" y="293" width="32" height="10" fill="#263241"/>
+  <line x1="237.2" y1="74.0" x2="321.2" y2="74.0" stroke="#263241" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="182.2" cy="187.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="182.2" y="192.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">1</text>
+  <circle cx="279.2" cy="26.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="279.2" y="31.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">2</text>
+  <g transform="rotate(-5.0 321.2 74.0)">
+    <rect x="321.2" y="65.0" width="58" height="18" rx="3" fill="#2563eb"/>
+    <line x1="326.2" y1="86.0" x2="372.2" y2="86.0" stroke="#60a5fa" stroke-width="2"/>
+  </g>
+  <circle cx="391.2" cy="42.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="391.2" y="47.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">3</text>
+  <circle cx="329.2" cy="114.0" r="14" fill="white" stroke="#111827" stroke-width="2"/>
+  <text x="329.2" y="119.0" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">4</text>
+  <path d="M 393.2 74.0 A 45 45 0 0 1 392.9 67.7" fill="none" stroke="#ef4444" stroke-width="1.6"/>
+  <text x="403.2" y="62.0" font-size="12" font-weight="800" fill="#ef4444">5Â°</text>
+  <text x="255.2" y="282.0" font-size="11" font-weight="700" fill="#475569">pole at road edge, luminaire projected over carriageway</text>
+  <line x1="254.0" y1="366.0" x2="646.0" y2="366.0" stroke="#334155" stroke-width="1"/><polygon points="254.0,366.0 261.0,362.0 261.0,370.0" fill="#334155"/><polygon points="646.0,366.0 639.0,362.0 639.0,370.0" fill="#334155"/><text x="450.0" y="383.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Roadway = 7.0 m</text><line x1="170.0" y1="390.0" x2="730.0" y2="390.0" stroke="#334155" stroke-width="1"/><polygon points="170.0,390.0 177.0,386.0 177.0,394.0" fill="#334155"/><polygon points="730.0,390.0 723.0,386.0 723.0,394.0" fill="#334155"/><text x="450.0" y="407.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Total width = 10.0 m</text><line x1="203.2" y1="74.0" x2="203.2" y2="300.0" stroke="#334155" stroke-width="1"/><line x1="198.2" y1="74.0" x2="208.2" y2="74.0" stroke="#334155" stroke-width="1"/><line x1="198.2" y1="300.0" x2="208.2" y2="300.0" stroke="#334155" stroke-width="1"/><text x="195.2" y="187.0" transform="rotate(-90 195.2 187.0)" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Mounting height = 9.0 m</text><line x1="237.2" y1="52.0" x2="321.2" y2="52.0" stroke="#334155" stroke-width="1"/><polygon points="237.2,52.0 244.2,48.0 244.2,56.0" fill="#334155"/><polygon points="321.2,52.0 314.2,48.0 314.2,56.0" fill="#334155"/><text x="279.2" y="69.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Overhang / arm = 1.5 m</text><line x1="237.2" y1="278.0" x2="254.0" y2="278.0" stroke="#334155" stroke-width="1"/><polygon points="237.2,278.0 244.2,274.0 244.2,282.0" fill="#334155"/><polygon points="254.0,278.0 247.0,274.0 247.0,282.0" fill="#334155"/><text x="245.6" y="295.0" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Pole offset = 0.30 m</text>
+</svg>
+</div>
+      </div>
+    </div>
+
+    <div class="planning-data-grid">
+      <table>
+        <tr><th>Luminaire / pole</th><th>Value</th></tr>
+        <tr><td>Luminaire</td><td class="value">CLAP M C35 30K F151 VDR SPUW 100W</td></tr>
+        <tr><td>Luminous flux</td><td class="value">15,478 lm</td></tr>
+        <tr><td>Power</td><td class="value">100 W</td></tr>
+        <tr><td>Mounting height (1)</td><td class="value">9.00 m</td></tr>
+        <tr><td>Pole offset from road edge</td><td class="value">0.30 m</td></tr>
+        <tr><td>Overhang / saliente (2)</td><td class="value">1.20 m</td></tr>
+        <tr><td>Head tilt (3)</td><td class="value">5°</td></tr>
+        <tr><td>Bracket length (4)</td><td class="value">1.50 m</td></tr>
+      </table>
+      <table>
+        <tr><th>Planning relation</th><th>Value</th></tr>
+        <tr><td>Arrangement</td><td class="value">Lineal</td></tr>
+        <tr><td>Spacing between masts</td><td class="value">30.00 m</td></tr>
+        <tr><td>Road / total width</td><td class="value">7.00 m / 10.00 m</td></tr>
+        <tr><td>Lighting class</td><td class="value">M3</td></tr>
+        <tr><td>Optic / CCT</td><td class="value">F151 / 4000 K</td></tr>
+        <tr><td>Overall result</td><td class="value"><span class="fail">FAIL</span></td></tr>
+      </table>
+    </div>
+
+    <div class="relation-strip">
+      <div class="relation-item"><div class="summary-label">Lavg</div><div class="summary-value">1.93 cd/m²</div></div>
+      <div class="relation-item"><div class="summary-label">Uo</div><div class="summary-value">0.645</div></div>
+      <div class="relation-item"><div class="summary-label">Em</div><div class="summary-value">31.07 lux</div></div>
+      <div class="relation-item"><div class="summary-label">Status</div><div class="summary-value"><span class="fail">FAIL</span></div></div>
+    </div>
+    <div class="footer"><span>Plan, section, luminaire position and results are shown together</span><span>Page 3</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Lighting performance</div></div>
+      <div><div class="badge">FAIL</div><div class="meta">29/05/2026 17:33</div></div>
+    </header>
+    <h2 class="section-title">Photometric Results</h2>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Lavg / Lm</div><div class="metric-value">1.93</div></div>
+      <div class="metric"><div class="metric-label">Uo</div><div class="metric-value">0.645</div></div>
+      <div class="metric"><div class="metric-label">Ul</div><div class="metric-value">0.845</div></div>
+      <div class="metric"><div class="metric-label">TI</div><div class="metric-value">4.1</div></div>
+      <div class="metric"><div class="metric-label">SR</div><div class="metric-value">0.305</div></div>
+      <div class="metric"><div class="metric-label">Em</div><div class="metric-value">31.07</div></div>
+      <div class="metric"><div class="metric-label">Emin</div><div class="metric-value">11.22</div></div>
+      <div class="metric"><div class="metric-label">Emax</div><div class="metric-value">67.05</div></div>
+    </div>
+    <table class="criteria-table"><tr><th>Criterion</th><th>Value</th><th>Required</th><th>Status</th></tr><tr><td>Lavg (cd/m²)</td><td>1.928</td><td>1.000</td><td><span class="ok">PASS</span></td></tr><tr><td>Uo</td><td>0.645</td><td>0.400</td><td><span class="ok">PASS</span></td></tr><tr><td>Ul</td><td>0.845</td><td>0.600</td><td><span class="ok">PASS</span></td></tr><tr><td>TI (%)</td><td>4.081</td><td>15.000</td><td><span class="ok">PASS</span></td></tr><tr><td>SR</td><td>0.305</td><td>0.500</td><td><span class="fail">FAIL</span></td></tr><tr class="result-row"><td colspan="3">Overall compliance</td><td><span class="fail">FAIL</span></td></tr></table>
+    <div class="verdict">
+      <div class="verdict-title">FAIL</div>
+      <div>
+        
+          One or more criteria fail. Review spacing, mounting height, optic, power, tilt or road geometry.
+        
+      </div>
+    </div>
+    <div class="footer"><span>Criteria table - CIE 140 / EN 13201</span><span>Page 4</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Isoline diagrams</div></div>
+      <div><div class="badge">FAIL</div><div class="meta">29/05/2026 17:33</div></div>
+    </header>
+    <h2 class="section-title">Isolines on Roadway and Pedestrian Areas</h2>
+    
+      <div class="chart-card large-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390">
+  <rect width="900" height="390" fill="white"/>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Roadway luminance - Observer 1</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">Calculation mesh 12 x 6 points, coordinates linked to the table below</text>
+  <rect x="86" y="78" width="720" height="215" fill="#e8edf3" stroke="#cbd5e1"/>
+  <rect x="86" y="110.2" width="720" height="150.5" fill="#59616c"/>
+  <line x1="86" y1="185.5" x2="806" y2="185.5" stroke="white" stroke-width="2" stroke-dasharray="14 10"/>
+  <path d="M 122.0 188.5 C 287.6 128.2, 518.0 242.8, 770.0 180.5" fill="none" stroke="#60a5fa" stroke-width="2.2"/><rect x="287.4" y="153.4" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="316.4" y="166.4" text-anchor="middle" font-size="11" font-weight="800" fill="#60a5fa">1.56 cd/mÂ²</text><path d="M 168.0 196.1 C 287.6 143.2, 518.0 227.8, 724.0 188.1" fill="none" stroke="#22c55e" stroke-width="2.2"/><rect x="381.0" y="164.0" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="410.0" y="177.0" text-anchor="middle" font-size="11" font-weight="800" fill="#22c55e">1.82 cd/mÂ²</text><path d="M 214.0 196.7 C 287.6 158.2, 518.0 212.8, 678.0 188.7" fill="none" stroke="#f59e0b" stroke-width="2.2"/><rect x="474.6" y="174.5" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="503.6" y="187.5" text-anchor="middle" font-size="11" font-weight="800" fill="#f59e0b">2.08 cd/mÂ²</text><path d="M 260.0 189.8 C 287.6 173.2, 518.0 197.8, 632.0 181.8" fill="none" stroke="#ef4444" stroke-width="2.2"/><rect x="568.2" y="185.0" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="597.2" y="198.0" text-anchor="middle" font-size="11" font-weight="800" fill="#ef4444">2.30 cd/mÂ²</text>
+  <circle cx="86.0" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="86.0" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="86.0" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="86.0" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="86.0" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="86.0" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="151.5" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="151.5" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="216.9" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="216.9" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="216.9" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="216.9" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="216.9" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="216.9" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="282.4" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="282.4" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="347.8" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="347.8" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="347.8" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="413.3" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="413.3" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="413.3" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="478.7" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="478.7" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="478.7" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="478.7" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="544.2" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="544.2" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="544.2" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="544.2" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="609.6" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="609.6" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="609.6" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="609.6" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="675.1" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="675.1" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="675.1" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="675.1" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="675.1" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="675.1" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="740.5" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="740.5" cy="147.9" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="806.0" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="806.0" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="806.0" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="248.2" r="2.2" fill="#1e40af" opacity="0.72"/>
+  <line x1="86" y1="317" x2="806" y2="317" stroke="#334155"/>
+  <text x="446.0" y="335" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">x coordinate over spacing (30.0 m)</text>
+  <g transform="translate(820 94)">
+    <rect x="0" y="0" width="60" height="150" rx="6" fill="#f8fafc" stroke="#dbe3ef"/>
+    <text x="30" y="22" text-anchor="middle" font-size="10" fill="#64748b">Scale</text>
+    <text x="30" y="48" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Avg</text>
+    <text x="30" y="64" text-anchor="middle" font-size="11" fill="#334155">1.93</text>
+    <text x="30" y="91" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Min</text>
+    <text x="30" y="107" text-anchor="middle" font-size="11" fill="#334155">1.24</text>
+    <text x="30" y="133" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Min/Avg</text>
+    <text x="30" y="147" text-anchor="middle" font-size="10" fill="#334155">0.645</text>
+  </g>
+</svg>
+</div>
+    
+    
+      <div class="chart-card large-chart" style="margin-top: 12px;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390">
+  <rect width="900" height="390" fill="white"/>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Roadway illuminance</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">Calculation mesh 12 x 6 points, coordinates linked to the table below</text>
+  <rect x="86" y="78" width="720" height="215" fill="#e8edf3" stroke="#cbd5e1"/>
+  <rect x="86" y="110.2" width="720" height="150.5" fill="#59616c"/>
+  <line x1="86" y1="185.5" x2="806" y2="185.5" stroke="white" stroke-width="2" stroke-dasharray="14 10"/>
+  <path d="M 122.0 188.5 C 287.6 128.2, 518.0 242.8, 770.0 180.5" fill="none" stroke="#60a5fa" stroke-width="2.2"/><rect x="287.4" y="153.4" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="316.4" y="166.4" text-anchor="middle" font-size="11" font-weight="800" fill="#60a5fa">25.18 lux</text><path d="M 168.0 196.1 C 287.6 143.2, 518.0 227.8, 724.0 188.1" fill="none" stroke="#22c55e" stroke-width="2.2"/><rect x="381.0" y="164.0" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="410.0" y="177.0" text-anchor="middle" font-size="11" font-weight="800" fill="#22c55e">36.35 lux</text><path d="M 214.0 196.7 C 287.6 158.2, 518.0 212.8, 678.0 188.7" fill="none" stroke="#f59e0b" stroke-width="2.2"/><rect x="474.6" y="174.5" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="503.6" y="187.5" text-anchor="middle" font-size="11" font-weight="800" fill="#f59e0b">47.51 lux</text><path d="M 260.0 189.8 C 287.6 173.2, 518.0 197.8, 632.0 181.8" fill="none" stroke="#ef4444" stroke-width="2.2"/><rect x="568.2" y="185.0" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/><text x="597.2" y="198.0" text-anchor="middle" font-size="11" font-weight="800" fill="#ef4444">57.00 lux</text>
+  <circle cx="86.0" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="86.0" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="86.0" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="86.0" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="86.0" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="86.0" cy="248.2" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="151.5" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="151.5" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="151.5" cy="248.2" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="216.9" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="216.9" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="216.9" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="216.9" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="216.9" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="216.9" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="282.4" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="347.8" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="413.3" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="478.7" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="544.2" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="198.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="223.1" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="609.6" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="675.1" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="675.1" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="675.1" cy="173.0" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="675.1" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="675.1" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="675.1" cy="248.2" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="740.5" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="740.5" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="740.5" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="740.5" cy="248.2" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="122.8" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="806.0" cy="147.9" r="2.2" fill="#64748b" opacity="0.72"/><circle cx="806.0" cy="173.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="198.0" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="223.1" r="2.2" fill="#1e40af" opacity="0.72"/><circle cx="806.0" cy="248.2" r="2.2" fill="#1e40af" opacity="0.72"/>
+  <line x1="86" y1="317" x2="806" y2="317" stroke="#334155"/>
+  <text x="446.0" y="335" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">x coordinate over spacing (30.0 m)</text>
+  <g transform="translate(820 94)">
+    <rect x="0" y="0" width="60" height="150" rx="6" fill="#f8fafc" stroke="#dbe3ef"/>
+    <text x="30" y="22" text-anchor="middle" font-size="10" fill="#64748b">Scale</text>
+    <text x="30" y="48" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Avg</text>
+    <text x="30" y="64" text-anchor="middle" font-size="11" fill="#334155">31.07</text>
+    <text x="30" y="91" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Min</text>
+    <text x="30" y="107" text-anchor="middle" font-size="11" fill="#334155">11.22</text>
+    <text x="30" y="133" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Min/Avg</text>
+    <text x="30" y="147" text-anchor="middle" font-size="10" fill="#334155">0.361</text>
+  </g>
+</svg>
+</div>
+    
+    
+    <div class="technical-note">
+      TODO: when separate pedestrian-area calculation grids are introduced, this page should split Sidewalk / Pedestrian area 1 and 2 into dedicated isoline panels. Current diagrams are generated from the roadway calculation grid and project geometry.
+    </div>
+    <div class="footer"><span>Technical isoline SVG diagrams</span><span>Page 5</span></div>
+  </section>
+
+  <section class="page">
+    <header class="header">
+      <div><div class="brand">LUX Studio</div><div class="subtitle">Calculation point table</div></div>
+      <div><div class="badge">FAIL</div><div class="meta">29/05/2026 17:33</div></div>
+    </header>
+    <h2 class="section-title">Calculation Points</h2>
+    <div class="table-note">Values in cd/mÂ². Coordinates correspond to the isoline diagram.</div><table class="point-table"><tr><th>y / x</th><th>x=1.2</th><th>x=3.8</th><th>x=6.2</th><th>x=8.8</th><th>x=11.2</th><th>x=13.8</th><th>x=16.2</th><th>x=18.8</th><th>x=21.2</th><th>x=23.8</th><th>x=26.2</th><th>x=28.8</th></tr><tr><th>y=0.6</th><td>1.30</td><td>1.42</td><td>1.53</td><td>1.60</td><td>1.66</td><td>1.68</td><td>1.61</td><td>1.56</td><td>1.53</td><td>1.42</td><td>1.29</td><td>1.24</td></tr><tr><th>y=1.8</th><td>1.88</td><td>1.95</td><td>2.03</td><td>2.06</td><td>2.12</td><td>2.17</td><td>2.09</td><td>2.07</td><td>2.12</td><td>2.09</td><td>1.89</td><td>1.83</td></tr><tr><th>y=2.9</th><td>2.26</td><td>2.12</td><td>2.08</td><td>2.08</td><td>2.15</td><td>2.21</td><td>2.20</td><td>2.23</td><td>2.33</td><td>2.41</td><td>2.27</td><td>2.32</td></tr><tr><th>y=4.1</th><td>2.42</td><td>2.11</td><td>1.93</td><td>1.88</td><td>1.93</td><td>2.04</td><td>2.11</td><td>2.13</td><td>2.27</td><td>2.44</td><td>2.37</td><td>2.53</td></tr><tr><th>y=5.2</th><td>2.19</td><td>1.92</td><td>1.74</td><td>1.70</td><td>1.77</td><td>1.85</td><td>1.94</td><td>1.98</td><td>2.00</td><td>2.13</td><td>2.12</td><td>2.29</td></tr><tr><th>y=6.4</th><td>1.83</td><td>1.66</td><td>1.55</td><td>1.53</td><td>1.58</td><td>1.63</td><td>1.67</td><td>1.66</td><td>1.68</td><td>1.71</td><td>1.81</td><td>1.91</td></tr></table>
+    <div class="technical-note">
+      The table shows the first calculation mesh points used for the technical diagram. Coordinates are expressed in metres along the longitudinal x axis and transverse y axis.
+    </div>
+    <div class="footer"><span>Calculation grid coordinates and values</span><span>Page 6</span></div>
+  </section>
+</body>
+</html>

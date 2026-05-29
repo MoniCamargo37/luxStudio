@@ -46,6 +46,9 @@ export interface BatchCalculationItem {
   row: number;
   config?: any;
   result?: CalculationResult;
+  real_result?: CalculationResult;
+  comparison?: Record<string, number | null>;
+  source?: string;
   error?: string;
 }
 

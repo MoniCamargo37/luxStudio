@@ -7,7 +7,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
-from ..salvi_lighting import calc_luminance, calc_road
+from ..salvi_lighting import build_luminaires, calc_luminance, calc_road
 
 from .ldt_loader import get_ldt_by_id, get_photometry
 from ..schemas.models import CalculationConfig, CalculationResult
@@ -47,9 +47,29 @@ def _interp_plane(photometry, c_index):
     grid = photometry["I"]
     if not c_angles or not g_angles or not grid:
         return [(g, 0.0) for g in range(0, 181, 5)]
-    c_step = c_angles[1] - c_angles[0] if len(c_angles) > 1 else 90
-    index = int(round(c_index / c_step)) % len(grid)
-    return [(float(g), float(grid[index][i])) for i, g in enumerate(g_angles)]
+    conv = float(photometry.get("conv", 1.0))
+    target = c_index % 360
+    indexed_angles = [(float(c) % 360, idx) for idx, c in enumerate(c_angles)]
+    exact = next((idx for c, idx in indexed_angles if abs(c - target) < 1e-6), None)
+    if exact is not None:
+        return [(float(g), float(grid[exact][i]) * conv) for i, g in enumerate(g_angles)]
+
+    ordered = sorted(indexed_angles)
+    wrapped = ordered + [(ordered[0][0] + 360, ordered[0][1])]
+    target_wrapped = target if target >= ordered[0][0] else target + 360
+    lower = wrapped[0]
+    upper = wrapped[-1]
+    for left, right in zip(wrapped, wrapped[1:]):
+        if left[0] <= target_wrapped <= right[0]:
+            lower, upper = left, right
+            break
+
+    span = max(upper[0] - lower[0], 1e-9)
+    t = (target_wrapped - lower[0]) / span
+    return [
+        (float(g), (float(grid[lower[1]][i]) * (1 - t) + float(grid[upper[1]][i]) * t) * conv)
+        for i, g in enumerate(g_angles)
+    ]
 
 
 def _closed_plane(plane_a, plane_b):
@@ -59,7 +79,7 @@ def _closed_plane(plane_a, plane_b):
 
 
 def renderPolarPhotometrySvg(photometry):
-    """Render a full technical polar photometry SVG with C0-180 and C90-270 planes."""
+    """Render a technical polar photometry SVG with gamma 0 at the bottom."""
     lum_name = _safe(photometry.get("luminaire_name", "Luminaire"))
     c0 = _interp_plane(photometry, 0)
     c90 = _interp_plane(photometry, 90)
@@ -76,7 +96,9 @@ def renderPolarPhotometrySvg(photometry):
     def xy(angle_deg, value):
         a = math.radians(angle_deg)
         r = radius * max(0.0, min(value / max_r, 1.0))
-        return cx + math.cos(a) * r, cy - math.sin(a) * r
+        # LDT gamma convention: 0 is straight down. In this polar diagram,
+        # 0 is drawn at the bottom, 90 at the right and 180 at the top.
+        return cx + math.sin(a) * r, cy + math.cos(a) * r
 
     def path_for(curve):
         if not curve:
@@ -91,9 +113,9 @@ def renderPolarPhotometrySvg(photometry):
     for tick in radial_ticks:
         r = radius * tick / max_r
         grid.append(f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" fill="none" stroke="#d8dee8" stroke-width="1"/>')
-        label_angle = math.radians(-12)
-        lx = cx + math.cos(label_angle) * r
-        ly = cy - math.sin(label_angle) * r
+        label_angle = math.radians(78)
+        lx = cx + math.sin(label_angle) * r
+        ly = cy + math.cos(label_angle) * r
         grid.append(
             f'<rect x="{lx + 5:.1f}" y="{ly - 9:.1f}" width="34" height="15" rx="2" fill="white" opacity="0.94"/>'
             f'<text x="{lx + 9:.1f}" y="{ly + 2:.1f}" font-size="11" fill="#475569">{tick}</text>'
@@ -109,7 +131,7 @@ def renderPolarPhotometrySvg(photometry):
     for angle in range(0, 360, 45):
         lx, ly = xy(angle, max_r * (1.22 if angle == 0 else 1.16))
         labels.append(
-            f'<text x="{lx:.1f}" y="{ly + 4:.1f}" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">{angle}°</text>'
+            f'<text x="{lx:.1f}" y="{ly + 4:.1f}" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">{angle}&#176;</text>'
         )
 
     return f"""
@@ -117,6 +139,7 @@ def renderPolarPhotometrySvg(photometry):
   <rect x="0" y="0" width="{width}" height="{height}" fill="white"/>
   <text x="28" y="30" font-size="15" font-weight="800" fill="#0f172a">I (cd/klm) - {lum_name}</text>
   <text x="28" y="50" font-size="10.5" fill="#64748b">Photometric distribution, normalized per 1000 lm</text>
+  <text x="28" y="68" font-size="10.5" fill="#64748b">Radial scale: {', '.join(str(t) for t in radial_ticks[:4])} cd/klm</text>
   <g>{''.join(grid)}</g>
   <path d="{path_for(red_curve)}" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linejoin="round"/>
   <path d="{path_for(blue_curve)}" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linejoin="round"/>
@@ -129,7 +152,6 @@ def renderPolarPhotometrySvg(photometry):
     <line x1="14" y1="38" x2="48" y2="38" stroke="#2563eb" stroke-width="2.8"/>
     <text x="58" y="42" font-size="12" font-weight="700" fill="#334155">C90-270</text>
   </g>
-  <text x="{cx}" y="474" text-anchor="middle" font-size="11" fill="#64748b">Radial scale: {', '.join(str(t) for t in radial_ticks[:4])} cd/klm</text>
 </svg>
 """
 
@@ -316,7 +338,7 @@ def renderRoadSectionSvg(config: CalculationConfig):
   <circle cx="{head_x + 8:.1f}" cy="{pole_top + 40:.1f}" r="14" fill="white" stroke="#111827" stroke-width="2"/>
   <text x="{head_x + 8:.1f}" y="{pole_top + 45:.1f}" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">4</text>
   <path d="M {head_x + 72:.1f} {pole_top:.1f} A 45 45 0 0 {1 if config.tilt >= 0 else 0} {head_x + 72 * math.cos(tilt_rad):.1f} {pole_top - 72 * math.sin(tilt_rad):.1f}" fill="none" stroke="#ef4444" stroke-width="1.6"/>
-  <text x="{head_x + 82:.1f}" y="{pole_top - 12 if config.tilt >= 0 else pole_top + 26:.1f}" font-size="12" font-weight="800" fill="#ef4444">{config.tilt:.0f}°</text>
+  <text x="{head_x + 82:.1f}" y="{pole_top - 12 if config.tilt >= 0 else pole_top + 26:.1f}" font-size="12" font-weight="800" fill="#ef4444">{config.tilt:.0f}&#176;</text>
   <text x="{pole_x + 18:.1f}" y="{ground_y - 18:.1f}" font-size="11" font-weight="700" fill="#475569">pole at road edge, luminaire projected over carriageway</text>
   {''.join(dims)}
 </svg>
@@ -342,9 +364,12 @@ def _calculation_grids(result: CalculationResult, ldt_id: str):
     if photometry is None:
         return {}
     cfg = _cfg_dict(result.config)
+    flux_scale = 1.0
+    if getattr(photometry, "flux", 0):
+        flux_scale = result.luminaire.flux / photometry.flux
     grids = {}
     try:
-        road = calc_road(cfg, photometry)
+        road = calc_road(cfg, photometry, flux_scale=flux_scale)
         grids["illuminance"] = {
             "title": "Roadway illuminance",
             "unit": "lux",
@@ -360,10 +385,10 @@ def _calculation_grids(result: CalculationResult, ldt_id: str):
         pass
     if result.mode == "ME":
         try:
-            lum = calc_luminance(cfg, photometry, road=result.config.pavement)
+            lum = calc_luminance(cfg, photometry, flux_scale=flux_scale, road=result.config.pavement)
             grids["luminance"] = {
                 "title": "Roadway luminance - Observer 1",
-                "unit": "cd/m²",
+                "unit": "cd/m&#178;",
                 "xs": lum["xs"],
                 "ys": lum["ys"],
                 "values": lum["Lgrid"],
@@ -371,14 +396,86 @@ def _calculation_grids(result: CalculationResult, ldt_id: str):
                 "min": lum["Lmin"],
                 "max": lum["Lmax"],
                 "zone": "observer",
+                "observer": lum.get("obs"),
+                "pavement": result.config.pavement,
             }
         except Exception:
             pass
     return grids
 
 
-def renderIsoLinesSvg(calculationGrid, config: CalculationConfig):
-    """Render technical isolines over a proportional road plan using SVG."""
+def _visible_luminaires(config: CalculationConfig, photometry, flux_scale):
+    cfg = _cfg_dict(config)
+    luminaires = build_luminaires(cfg, photometry, flux_scale=flux_scale)
+    margin = max(config.spacing * 0.02, 0.5)
+    return [
+        lum for lum in luminaires
+        if -margin <= lum.x0 <= config.spacing + margin
+    ]
+
+
+def _field_contours(x_coords, y_coords, values, level):
+    """Marching-squares contour segments for a rectilinear grid."""
+    segments = []
+
+    def crossing(p1, p2, v1, v2):
+        if abs(v2 - v1) < 1e-12:
+            t = 0.5
+        else:
+            t = (level - v1) / (v2 - v1)
+        t = max(0.0, min(1.0, t))
+        return p1[0] + (p2[0] - p1[0]) * t, p1[1] + (p2[1] - p1[1]) * t
+
+    for ix in range(len(x_coords) - 1):
+        for iy in range(len(y_coords) - 1):
+            p = [
+                (x_coords[ix], y_coords[iy]),
+                (x_coords[ix + 1], y_coords[iy]),
+                (x_coords[ix + 1], y_coords[iy + 1]),
+                (x_coords[ix], y_coords[iy + 1]),
+            ]
+            v = [
+                values[ix][iy],
+                values[ix + 1][iy],
+                values[ix + 1][iy + 1],
+                values[ix][iy + 1],
+            ]
+            pts = []
+            for a, b in ((0, 1), (1, 2), (2, 3), (3, 0)):
+                va, vb = v[a], v[b]
+                if (va < level <= vb) or (vb < level <= va):
+                    pts.append(crossing(p[a], p[b], va, vb))
+            if len(pts) == 2:
+                segments.append((pts[0], pts[1]))
+            elif len(pts) == 4:
+                segments.append((pts[0], pts[1]))
+                segments.append((pts[2], pts[3]))
+    return segments
+
+
+def _dense_isoline_field(calculationGrid, config: CalculationConfig, photometry, flux_scale, include_sidewalks):
+    cfg = _cfg_dict(config)
+    luminaires = build_luminaires(cfg, photometry, flux_scale=flux_scale)
+    nx, ny = 74, 46
+    x_min, x_max = 0.0, config.spacing
+    y_min = -config.sidewalk_left if include_sidewalks else 0.0
+    y_max = config.road_width + (config.sidewalk_right if include_sidewalks else 0.0)
+    if y_max <= y_min:
+        y_min, y_max = 0.0, max(config.road_width, 1.0)
+    xs = [x_min + (x_max - x_min) * i / (nx - 1) for i in range(nx)]
+    ys = [y_min + (y_max - y_min) * j / (ny - 1) for j in range(ny)]
+    if calculationGrid.get("unit") == "lux":
+        values = [[sum(lum.E_at(x, y) for lum in luminaires) for y in ys] for x in xs]
+    else:
+        observer_xy = calculationGrid.get("observer") or (-60.0, config.road_width / max(config.lanes, 1) / 2.0)
+        pavement = calculationGrid.get("pavement", config.pavement)
+        values = [[sum(lum.L_at(x, y, observer_xy, road=pavement) for lum in luminaires) for y in ys] for x in xs]
+    flat = [v for col in values for v in col]
+    return xs, ys, values, min(flat), max(flat)
+
+
+def renderIsoLinesSvg(calculationGrid, config: CalculationConfig, photometry=None, flux_scale=1.0):
+    """Render technical isolines from the calculated photometric field around each luminaire."""
     xs = calculationGrid.get("xs", [])
     ys = calculationGrid.get("ys", [])
     values = calculationGrid.get("values", [])
@@ -387,23 +484,33 @@ def renderIsoLinesSvg(calculationGrid, config: CalculationConfig):
     if not xs or not ys or not values:
         return ""
 
-    flat = [float(v) for row in values for v in row]
-    vmin, vmax = min(flat), max(flat)
-    levels = [vmin + (vmax - vmin) * p for p in (0.25, 0.45, 0.65, 0.82)]
+    include_sidewalks = calculationGrid.get("unit") == "lux"
+    if photometry is not None:
+        field_xs, field_ys, field_values, vmin, vmax = _dense_isoline_field(
+            calculationGrid, config, photometry, flux_scale, include_sidewalks
+        )
+    else:
+        field_xs, field_ys, field_values = xs, ys, values
+        flat = [float(v) for row in values for v in row]
+        vmin, vmax = min(flat), max(flat)
+    if vmax <= vmin:
+        levels = [vmax]
+    else:
+        levels = [vmin + (vmax - vmin) * p for p in (0.20, 0.38, 0.58, 0.78)]
     width, height = 900, 390
     plot_x, plot_y, plot_w, plot_h = 86, 78, 720, 215
     total_w = config.road_width + config.sidewalk_left + config.sidewalk_right
-    road_y = plot_y + config.sidewalk_left / max(total_w, 1) * plot_h
-    road_h = config.road_width / max(total_w, 1) * plot_h
+    y_min, y_max = min(field_ys), max(field_ys)
+    road_y = plot_y + (0 - y_min) / max(y_max - y_min, 1) * plot_h
+    road_h = config.road_width / max(y_max - y_min, 1) * plot_h
 
-    x_min, x_max = min(xs), max(xs)
-    y_min, y_max = 0, max(config.road_width, max(ys) if ys else config.road_width)
+    x_min, x_max = min(field_xs), max(field_xs)
 
     def sx(x):
         return plot_x + (x - x_min) / max(x_max - x_min, 1) * plot_w
 
     def sy(y):
-        return road_y + y / max(y_max - y_min, 1) * road_h
+        return plot_y + (y - y_min) / max(y_max - y_min, 1) * plot_h
 
     grid_pts = []
     for i, x in enumerate(xs):
@@ -415,21 +522,18 @@ def renderIsoLinesSvg(calculationGrid, config: CalculationConfig):
     contours = []
     colors = ["#60a5fa", "#22c55e", "#f59e0b", "#ef4444"]
     for idx, level in enumerate(levels):
-        inset_x = 36 + idx * 46
-        inset_y = 18 + idx * 15
-        y_mid = road_y + road_h * (0.52 + 0.06 * math.sin(idx))
-        path = (
-            f"M {plot_x + inset_x:.1f} {y_mid:.1f} "
-            f"C {plot_x + plot_w * .28:.1f} {road_y + inset_y:.1f}, "
-            f"{plot_x + plot_w * .60:.1f} {road_y + road_h - inset_y:.1f}, "
-            f"{plot_x + plot_w - inset_x:.1f} {y_mid - 8:.1f}"
-        )
-        label_x = plot_x + plot_w * (0.32 + idx * 0.13)
-        label_y = road_y + road_h * (0.38 + idx * 0.07)
-        contours.append(f'<path d="{path}" fill="none" stroke="{colors[idx]}" stroke-width="2.2"/>')
+        segments = _field_contours(field_xs, field_ys, field_values, level)
+        for (x1, y1), (x2, y2) in segments:
+            contours.append(
+                f'<line x1="{sx(x1):.1f}" y1="{sy(y1):.1f}" x2="{sx(x2):.1f}" y2="{sy(y2):.1f}" '
+                f'stroke="{colors[idx]}" stroke-width="1.7" stroke-linecap="round" opacity="0.9"/>'
+            )
+        label_x = plot_x + plot_w - 116
+        label_y = plot_y + 20 + idx * 22
         contours.append(
-            f'<rect x="{label_x - 29:.1f}" y="{label_y - 14:.1f}" width="58" height="18" rx="3" fill="white" stroke="#dbe3ef"/>'
-            f'<text x="{label_x:.1f}" y="{label_y - 1:.1f}" text-anchor="middle" font-size="11" font-weight="800" fill="{colors[idx]}">{_fmt(level, 2)} {unit}</text>'
+            f'<rect x="{label_x - 7:.1f}" y="{label_y - 14:.1f}" width="108" height="19" rx="3" fill="white" opacity="0.9" stroke="#dbe3ef"/>'
+            f'<line x1="{label_x:.1f}" y1="{label_y - 4:.1f}" x2="{label_x + 20:.1f}" y2="{label_y - 4:.1f}" stroke="{colors[idx]}" stroke-width="2.4"/>'
+            f'<text x="{label_x + 26:.1f}" y="{label_y:.1f}" font-size="10" font-weight="800" fill="{colors[idx]}">{_fmt(level, 2)} {unit}</text>'
         )
 
     lanes = []
@@ -437,16 +541,25 @@ def renderIsoLinesSvg(calculationGrid, config: CalculationConfig):
         y = road_y + road_h * lane / config.lanes
         lanes.append(f'<line x1="{plot_x}" y1="{y:.1f}" x2="{plot_x + plot_w}" y2="{y:.1f}" stroke="white" stroke-width="2" stroke-dasharray="14 10"/>')
 
+    lum_markers = []
+    if photometry is not None:
+        for lum in _visible_luminaires(config, photometry, flux_scale):
+            if y_min <= lum.y0 <= y_max:
+                x, y = sx(lum.x0), sy(lum.y0)
+                lum_markers.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6.2" fill="#111827" stroke="white" stroke-width="1.6"/>')
+                lum_markers.append(f'<path d="M {x - 12:.1f} {y:.1f} L {x + 12:.1f} {y:.1f} M {x:.1f} {y - 12:.1f} L {x:.1f} {y + 12:.1f}" stroke="#111827" stroke-width="1.2"/>')
+
     uniformity = (vmin / calculationGrid.get("avg", vmax)) if calculationGrid.get("avg", 0) else 0
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">
   <rect width="{width}" height="{height}" fill="white"/>
   <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">{title}</text>
-  <text x="28" y="53" font-size="11" fill="#64748b">Calculation mesh {len(xs)} x {len(ys)} points, coordinates linked to the table below</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">Real contour lines from luminaire positions, with EN 13201 calculation points overlaid</text>
   <rect x="{plot_x}" y="{plot_y}" width="{plot_w}" height="{plot_h}" fill="#e8edf3" stroke="#cbd5e1"/>
   <rect x="{plot_x}" y="{road_y:.1f}" width="{plot_w}" height="{road_h:.1f}" fill="#59616c"/>
   {''.join(lanes)}
   {''.join(contours)}
+  {''.join(lum_markers)}
   {''.join(grid_pts)}
   <line x1="{plot_x}" y1="{plot_y + plot_h + 24}" x2="{plot_x + plot_w}" y2="{plot_y + plot_h + 24}" stroke="#334155"/>
   <text x="{plot_x + plot_w / 2}" y="{plot_y + plot_h + 42}" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">x coordinate over spacing ({config.spacing:.1f} m)</text>
@@ -509,6 +622,10 @@ def _render_html(result: CalculationResult) -> str:
     cfg = result.config
     ldt_info = result.luminaire
     full_ldt = get_ldt_by_id(ldt_info.id)
+    photometry = get_photometry(ldt_info.id)
+    flux_scale = 1.0
+    if photometry is not None and getattr(photometry, "flux", 0):
+        flux_scale = ldt_info.flux / photometry.flux
     grids = _calculation_grids(result, ldt_info.id)
     primary_grid = grids.get("luminance") or grids.get("illuminance")
     illuminance_grid = grids.get("illuminance")
@@ -531,8 +648,8 @@ def _render_html(result: CalculationResult) -> str:
         road_section_svg=renderRoadSectionSvg(cfg),
         mini_section_svg=renderRoadSectionSvg(cfg),
         polar_svg=renderPolarPhotometrySvg(full_ldt or {"luminaire_name": ldt_info.luminaire_name, "C": [], "G": [], "I": []}),
-        iso_luminance_svg=renderIsoLinesSvg(luminance_grid, cfg) if luminance_grid else "",
-        iso_illuminance_svg=renderIsoLinesSvg(illuminance_grid, cfg) if illuminance_grid else "",
+        iso_luminance_svg=renderIsoLinesSvg(luminance_grid, cfg, photometry, flux_scale) if luminance_grid else "",
+        iso_illuminance_svg=renderIsoLinesSvg(illuminance_grid, cfg, photometry, flux_scale) if illuminance_grid else "",
         results_table=renderResultsTable(result),
         point_table=_point_table(primary_grid),
         Lavg=_fmt(result.Lavg, 2),
@@ -567,3 +684,4 @@ async def generate_pdf(result: CalculationResult) -> bytes:
     loop = asyncio.get_running_loop()
     with concurrent.futures.ThreadPoolExecutor() as pool:
         return await loop.run_in_executor(pool, _generate_pdf_sync, html_doc)
+

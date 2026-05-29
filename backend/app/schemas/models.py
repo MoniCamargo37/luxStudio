@@ -18,6 +18,9 @@ class CalculationConfig(BaseModel):
     tilt: float = Field(ge=-30, le=30, default=5, description="Tilt angle in degrees")
     optic_family: str = Field(description="Optic family code, e.g. F151")
     power: float = Field(gt=0, description="Luminaire power in watts")
+    ldt_id: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model_family: Optional[str] = None
     lighting_class: str = Field(
         default="M3",
         pattern=r"^(M[1-6]|P[1-6])$",
@@ -76,6 +79,9 @@ class BatchCalculationItem(BaseModel):
     row: int
     config: Optional[CalculationConfig] = None
     result: Optional[CalculationResult] = None
+    real_result: Optional[CalculationResult] = None
+    comparison: Optional[dict[str, Optional[float]]] = None
+    source: Optional[str] = None
     error: Optional[str] = None
 
 

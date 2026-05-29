@@ -18,6 +18,9 @@ export interface ConfigState {
   // Luminaire selection
   optic_family: string;
   power: number; // watts
+  ldt_id: string;
+  manufacturer: string;
+  model_family: string;
 
   // Other parameters
   lighting_class: 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6';
@@ -43,6 +46,7 @@ export interface ConfigState {
   setTilt: (t: number) => void;
   setOpticFamily: (f: string) => void;
   setPower: (p: number) => void;
+  setSelectedLdt: (ldt: { id: string; manufacturer: string; model_family: string; optic_family: string; power: number; cct: number }) => void;
   setLightingClass: (c: ConfigState['lighting_class']) => void;
   setMf: (m: number) => void;
   setPavement: (p: ConfigState['pavement']) => void;
@@ -103,6 +107,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   optic_family: 'F151',
   power: 100,
+  ldt_id: '',
+  manufacturer: '',
+  model_family: '',
 
   lighting_class: 'M3',
   mf: 0.85,
@@ -126,6 +133,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   setTilt: (t: number) => set({ tilt: t }),
   setOpticFamily: (f: string) => set({ optic_family: f }),
   setPower: (p: number) => set({ power: p }),
+  setSelectedLdt: (ldt) => set({
+    ldt_id: ldt.id,
+    manufacturer: ldt.manufacturer,
+    model_family: ldt.model_family,
+    optic_family: ldt.optic_family,
+    power: ldt.power,
+    cct: ldt.cct,
+  }),
   setLightingClass: (c: 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6') => set({ lighting_class: c }),
   setMf: (m: number) => set({ mf: m }),
   setPavement: (p: 'R1' | 'R2' | 'R3' | 'R4') => set({ pavement: p }),
@@ -146,6 +161,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     tilt: 5,
     optic_family: 'F151',
     power: 100,
+    ldt_id: '',
+    manufacturer: '',
+    model_family: '',
     lighting_class: 'M3',
     mf: 0.85,
     pavement: 'R3',
@@ -175,6 +193,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         tilt: config.tilt,
         optic_family: config.optic_family,
         power: config.power,
+        ldt_id: config.ldt_id,
+        manufacturer: config.manufacturer,
+        model_family: config.model_family,
         lighting_class: config.lighting_class,
         mf: config.mf,
         pavement: config.pavement,

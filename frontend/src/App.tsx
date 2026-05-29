@@ -5,6 +5,7 @@ import MainLayout from './layouts/MainLayout';
 import GeometryPanel from './components/panels/GeometryPanel';
 import ArrangementPanel from './components/panels/ArrangementPanel';
 import LuminairePanel from './components/panels/LuminairePanel';
+import FormulaLdtBatchPanel from './components/panels/FormulaLdtBatchPanel';
 import BatchExcelPanel from './components/panels/BatchExcelPanel';
 import BatchResultsPanel from './components/panels/BatchResultsPanel';
 import ResultsPanel from './components/panels/ResultsPanel';
@@ -13,6 +14,31 @@ import RoadPlanView from './components/canvas/RoadPlanView';
 import RoadSectionView from './components/canvas/RoadSectionView';
 import type { BatchCalculationResponse } from './types';
 import './App.css';
+
+const buildCalculationRequest = () => {
+  const config = useConfigStore.getState();
+  return {
+    road_width: config.road_width,
+    sidewalk_left: config.sidewalk_left,
+    sidewalk_right: config.sidewalk_right,
+    lanes: config.lanes,
+    arrangement: config.arrangement,
+    height: config.height,
+    spacing: config.spacing,
+    arm_length: config.arm_length,
+    pole_offset: config.pole_offset,
+    tilt: config.tilt,
+    optic_family: config.optic_family,
+    power: config.power,
+    ldt_id: config.ldt_id,
+    manufacturer: config.manufacturer,
+    model_family: config.model_family,
+    lighting_class: config.lighting_class,
+    mf: config.mf,
+    pavement: config.pavement,
+    cct: config.cct,
+  };
+};
 
 const Home: React.FC = () => {
   const { results, loading, error, calculate, setResults, setLoading, setError } = useConfigStore();
@@ -54,6 +80,35 @@ const Home: React.FC = () => {
     }
   };
 
+  const calculateFormulaLdtBatch = async () => {
+    setLoading(true);
+    setError(null);
+    setBatchResults(null);
+    setResults(null);
+    setExcelFile(null);
+
+    try {
+      const response = await fetch('/api/formula-ldt-batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(buildCalculationRequest()),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.detail || `Server error (${response.status})`);
+      }
+
+      setBatchResults(await response.json());
+    } catch (err: any) {
+      setError(err.message || 'Failed to calculate LDT formula batch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCalculate = async () => {
     if (excelFile) {
       await calculateExcel(excelFile);
@@ -89,6 +144,7 @@ const Home: React.FC = () => {
             <GeometryPanel />
             <ArrangementPanel />
             <LuminairePanel />
+            <FormulaLdtBatchPanel loading={loading} onRun={calculateFormulaLdtBatch} />
             <BatchExcelPanel file={excelFile} onFileChange={handleExcelFileChange} />
 
             <button
