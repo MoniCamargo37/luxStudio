@@ -25,9 +25,9 @@ const ArrangementPanel: React.FC = () => {
           value={height}
           min={4}
           max={16}
-          step={0.5}
+          step={0.01}
           unit="m"
-          decimals={1}
+          decimals={2}
           onChange={setHeight}
         />
 

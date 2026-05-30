@@ -104,3 +104,5 @@ export type ArrangementType = 'Lineal' | 'Bilateral' | 'Central Doble' | 'En Isl
 export type LightingClass = 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6';
 
 export type PavementType = 'R1' | 'R2' | 'R3' | 'R4';
+
+export type PoleSide = 'left' | 'right';

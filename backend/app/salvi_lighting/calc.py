@@ -161,9 +161,13 @@ def build_luminaires(cfg, photometry, flux_scale=1.0):
     mf = cfg["mf"]
 
     if arr == "Lineal":
-        poles = [dict(side="L", x_offset=0.0)]
+        pole_side = str(cfg.get("pole_side", "left")).lower()
+        poles = [dict(side="R" if pole_side == "right" else "L", x_offset=0.0)]
     elif arr == "Bilateral":
-        poles = [dict(side="L", x_offset=0.0), dict(side="R", x_offset=S / 2.0)]
+        pole_side = str(cfg.get("pole_side", "left")).lower()
+        first = "R" if pole_side == "right" else "L"
+        second = "L" if first == "R" else "R"
+        poles = [dict(side=first, x_offset=0.0), dict(side=second, x_offset=S / 2.0)]
     elif arr == "Central Doble":
         poles = [dict(side="C", x_offset=0.0, mirror=False), dict(side="C", x_offset=0.0, mirror=True)]
     elif arr == "En Isleta":

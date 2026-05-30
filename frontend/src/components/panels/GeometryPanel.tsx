@@ -1,6 +1,6 @@
 import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
-import type { ArrangementType, LightingClass, PavementType } from '../../types';
+import type { ArrangementType, LightingClass, PavementType, PoleSide } from '../../types';
 import EditableSlider from '../ui/EditableSlider';
 
 const lightingClasses: LightingClass[] = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'];
@@ -18,6 +18,7 @@ const GeometryPanel: React.FC = () => {
     sidewalk_right, setSidewalkRight,
     lanes, setLanes,
     pole_offset, setPoleOffset,
+    pole_side, setPoleSide,
     arrangement, setArrangement,
     spacing, setSpacing,
     lighting_class, setLightingClass,
@@ -98,17 +99,42 @@ const GeometryPanel: React.FC = () => {
           </div>
         </div>
 
-        <EditableSlider
-          label="Pole offset from road edge"
-          value={pole_offset}
-          min={0}
-          max={3}
-          step={0.05}
-          unit="m"
-          decimals={2}
-          onChange={setPoleOffset}
-          marks={['0.00', '3.00']}
-        />
+        <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              Luminaire sidewalk
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                ['left', 'Left sidewalk'],
+                ['right', 'Right sidewalk'],
+              ] as [PoleSide, string][]).map(([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() => setPoleSide(value)}
+                  className={`py-2 rounded-md text-xs font-semibold transition-all
+                    ${pole_side === value
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <EditableSlider
+            label="Pole offset from road edge"
+            value={pole_offset}
+            min={0}
+            max={3}
+            step={0.05}
+            unit="m"
+            decimals={2}
+            onChange={setPoleOffset}
+            marks={['0.00', '3.00']}
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>

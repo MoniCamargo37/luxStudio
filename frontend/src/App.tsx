@@ -37,6 +37,7 @@ const buildCalculationRequest = () => {
     spacing: config.spacing,
     arm_length: config.arm_length,
     pole_offset: config.pole_offset,
+    pole_side: config.pole_side,
     tilt: config.tilt,
     optic_family: config.optic_family,
     power: config.power,

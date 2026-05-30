@@ -53,6 +53,7 @@ OPTIMIZATION_FIXED_PARAMETERS = [
     "height",
     "arm_length",
     "pole_offset",
+    "pole_side",
     "tilt",
     "power",
     "manufacturer",

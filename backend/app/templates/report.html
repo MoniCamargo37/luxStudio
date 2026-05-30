@@ -20,13 +20,11 @@
   }
   .page {
     width: 210mm;
-    min-height: 297mm;
+    height: 285mm;
     padding: 13mm 15mm 12mm;
-    page-break-after: always;
     position: relative;
     overflow: hidden;
   }
-  .page:last-child { page-break-after: auto; }
   .header {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -117,6 +115,8 @@
     background: #fbfdff;
     padding: 7px;
     overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   .chart-card svg {
     width: 100%;
@@ -127,18 +127,21 @@
     padding: 4px;
   }
   .polar-card {
-    height: 178mm;
+    height: 132mm;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .polar-card svg {
-    width: 94%;
-    max-height: 166mm;
+    width: 92%;
+    max-height: 124mm;
   }
   table {
     width: 100%;
     border-collapse: collapse;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    table-layout: fixed;
   }
   th {
     background: #1e40af;
@@ -155,6 +158,10 @@
     vertical-align: top;
   }
   tr:nth-child(even) td { background: #f8fafc; }
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   .value { font-weight: 800; color: #0f172a; }
   .ok { color: #059669; font-weight: 900; }
   .fail { color: #dc2626; font-weight: 900; }
@@ -178,6 +185,8 @@
     border-radius: 7px;
     padding: 8px;
     background: #f8fafc;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   .metric-label { color: #64748b; font-size: 7.4pt; text-transform: uppercase; letter-spacing: .4px; }
   .metric-value { margin-top: 3px; font-size: 13pt; font-weight: 900; color: #0f172a; }
@@ -235,6 +244,9 @@
   .planning-drawings .chart-card {
     padding: 4px 6px;
   }
+  .planning-drawings svg {
+    max-height: 104mm;
+  }
   .planning-data-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -242,7 +254,7 @@
     margin-top: 10px;
   }
   .relation-strip {
-    display: grid;
+    display: none;
     grid-template-columns: repeat(4, 1fr);
     gap: 7px;
     margin-top: 10px;
@@ -281,14 +293,14 @@
 
     <div class="chart-card large-chart">{{ mini_section_svg }}</div>
 
-    <div class="two-col" style="margin-top: 12px;">
+    <div class="two-col" style="display:none">
       <table>
         <tr><th>Planning parameter</th><th>Value</th></tr>
         <tr><td>Total width</td><td class="value">{{ "%.1f"|format(total_width) }} m</td></tr>
         <tr><td>Roadway width</td><td class="value">{{ "%.1f"|format(cfg.road_width) }} m</td></tr>
         <tr><td>Sidewalks</td><td class="value">{{ "%.1f"|format(cfg.sidewalk_left) }} m / {{ "%.1f"|format(cfg.sidewalk_right) }} m</td></tr>
         <tr><td>Spacing</td><td class="value">{{ "%.1f"|format(cfg.spacing) }} m</td></tr>
-        <tr><td>Pole offset / arm / tilt</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.1f"|format(cfg.arm_length) }} m / {{ "%.0f"|format(cfg.tilt) }}°</td></tr>
+        <tr><td>Pole side / offset / arm / tilt</td><td class="value">{{ "Right sidewalk" if cfg.pole_side == "right" else "Left sidewalk" }} / {{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.1f"|format(cfg.arm_length) }} m / {{ "%.0f"|format(cfg.tilt) }}&deg;</td></tr>
       </table>
       <div class="verdict" style="margin-top: 0;">
         <div class="verdict-title">{{ compliant_label }}</div>
@@ -353,7 +365,7 @@
       </div>
     </div>
 
-    <div class="planning-data-grid">
+    <div class="planning-data-grid" style="display:none">
       <table>
         <tr><th>Luminaire / pole</th><th>Value</th></tr>
         <tr><td>Luminaire</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
@@ -361,8 +373,9 @@
         <tr><td>Power</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
         <tr><td>Mounting height (1)</td><td class="value">{{ "%.2f"|format(cfg.height) }} m</td></tr>
         <tr><td>Pole offset from road edge</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m</td></tr>
+        <tr><td>Pole side</td><td class="value">{{ "Right sidewalk" if cfg.pole_side == "right" else "Left sidewalk" }}</td></tr>
         <tr><td>Effective overhang / saliente (2)</td><td class="value">{{ "%.2f"|format(cfg.arm_length - cfg.pole_offset) }} m</td></tr>
-        <tr><td>Head tilt (3)</td><td class="value">{{ "%.0f"|format(cfg.tilt) }}°</td></tr>
+        <tr><td>Head tilt (3)</td><td class="value">{{ "%.0f"|format(cfg.tilt) }}&deg;</td></tr>
         <tr><td>Bracket length (4)</td><td class="value">{{ "%.2f"|format(cfg.arm_length) }} m</td></tr>
       </table>
       <table>
@@ -377,10 +390,10 @@
     </div>
 
     <div class="relation-strip">
-      <div class="relation-item"><div class="summary-label">Lavg</div><div class="summary-value">{{ Lavg }} cd/m²</div></div>
-      <div class="relation-item"><div class="summary-label">Uo</div><div class="summary-value">{{ Uo }}</div></div>
-      <div class="relation-item"><div class="summary-label">Em</div><div class="summary-value">{{ Eavg }} lux</div></div>
-      <div class="relation-item"><div class="summary-label">Status</div><div class="summary-value"><span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></div></div>
+      <div class="relation-item"><div class="summary-label">Spacing</div><div class="summary-value">{{ "%.1f"|format(cfg.spacing) }} m</div></div>
+      <div class="relation-item"><div class="summary-label">Height / arm</div><div class="summary-value">{{ "%.1f"|format(cfg.height) }} m / {{ "%.1f"|format(cfg.arm_length) }} m</div></div>
+      <div class="relation-item"><div class="summary-label">Offset / tilt</div><div class="summary-value">{{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.0f"|format(cfg.tilt) }}&deg;</div></div>
+      <div class="relation-item"><div class="summary-label">Optic / status</div><div class="summary-value">{{ luminaire.optic_family }} / <span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></div></div>
     </div>
     <div class="footer"><span>Plan, section, luminaire position and results are shown together</span><span>Page 3</span></div>
   </section>

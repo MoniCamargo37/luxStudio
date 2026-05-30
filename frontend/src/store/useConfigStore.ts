@@ -13,6 +13,7 @@ export interface ConfigState {
   spacing: number; // meters
   arm_length: number; // meters
   pole_offset: number; // meters from road edge to pole axis
+  pole_side: 'left' | 'right'; // side where unilateral poles are installed
   tilt: number; // degrees
 
   // Luminaire selection
@@ -43,6 +44,7 @@ export interface ConfigState {
   setSpacing: (s: number) => void;
   setArmLength: (a: number) => void;
   setPoleOffset: (o: number) => void;
+  setPoleSide: (s: ConfigState['pole_side']) => void;
   setTilt: (t: number) => void;
   setOpticFamily: (f: string) => void;
   setPower: (p: number) => void;
@@ -105,6 +107,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   spacing: 30.0,
   arm_length: 1.5,
   pole_offset: 0.0,
+  pole_side: 'left',
   tilt: 5,
 
   optic_family: 'F151',
@@ -132,6 +135,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   setSpacing: (s: number) => set({ spacing: s }),
   setArmLength: (a: number) => set({ arm_length: a }),
   setPoleOffset: (o: number) => set({ pole_offset: o }),
+  setPoleSide: (s: 'left' | 'right') => set({ pole_side: s }),
   setTilt: (t: number) => set({ tilt: t }),
   setOpticFamily: (f: string) => set({ optic_family: f }),
   setPower: (p: number) => set({ power: p }),
@@ -160,6 +164,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     spacing: 30.0,
     arm_length: 1.5,
     pole_offset: 0.0,
+    pole_side: 'left',
     tilt: 5,
     optic_family: 'F151',
     power: 100,
@@ -192,6 +197,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         spacing: config.spacing,
         arm_length: config.arm_length,
         pole_offset: config.pole_offset,
+        pole_side: config.pole_side,
         tilt: config.tilt,
         optic_family: config.optic_family,
         power: config.power,

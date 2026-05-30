@@ -2,7 +2,7 @@ import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 
 const RoadPlanView: React.FC = () => {
-  const { road_width, sidewalk_left, sidewalk_right, lanes, spacing, arrangement, height, pole_offset } = useConfigStore();
+  const { road_width, sidewalk_left, sidewalk_right, lanes, spacing, arrangement, height, pole_offset, pole_side } = useConfigStore();
 
   const W = 500;
   const H = 230;
@@ -48,7 +48,7 @@ const RoadPlanView: React.FC = () => {
           </svg>
           Plan View
         </h3>
-        <span className="text-xs text-slate-400">h = {height.toFixed(1)} m &middot; {arrangement}</span>
+        <span className="text-xs text-slate-400">h = {height.toFixed(2)} m &middot; {arrangement}</span>
       </div>
       <div className="p-3 flex justify-center">
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
@@ -97,7 +97,9 @@ const RoadPlanView: React.FC = () => {
             }
 
             if (arrangement === 'Bilateral') {
-              const cy = i % 2 === 0 ? lumY('top') : lumY('bottom');
+              const firstSide = pole_side === 'right' ? 'bottom' : 'top';
+              const secondSide = pole_side === 'right' ? 'top' : 'bottom';
+              const cy = i % 2 === 0 ? lumY(firstSide) : lumY(secondSide);
               return (
                 <g key={`lum-${i}`}>
                   <circle cx={x} cy={cy} r="5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5"/>
@@ -117,7 +119,7 @@ const RoadPlanView: React.FC = () => {
               );
             }
 
-            const cy = lumY('top');
+            const cy = lumY(pole_side === 'right' ? 'bottom' : 'top');
             return (
               <g key={`lum-${i}`}>
                 <circle cx={x} cy={cy} r="5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5"/>

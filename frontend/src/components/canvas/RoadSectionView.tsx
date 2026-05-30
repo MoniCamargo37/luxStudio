@@ -2,7 +2,7 @@ import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 
 const RoadSectionView: React.FC = () => {
-  const { road_width, sidewalk_left, sidewalk_right, height, arm_length, pole_offset, tilt, lanes } = useConfigStore();
+  const { road_width, sidewalk_left, sidewalk_right, height, arm_length, pole_offset, pole_side, tilt, lanes } = useConfigStore();
 
   const totalW = road_width + sidewalk_left + sidewalk_right;
   const roadThick = 14;
@@ -21,10 +21,11 @@ const RoadSectionView: React.FC = () => {
   const roadY = H - margin.bottom - roadThick;
   const roadBase = roadY + roadThick;
 
-  const roadEdgeX = margin.left + sidewalk_left * roadScale;
-  const poleX = roadEdgeX - pole_offset * roadScale;
+  const sideSign = pole_side === 'right' ? -1 : 1;
+  const roadEdgeX = margin.left + sidewalk_left * roadScale + (pole_side === 'right' ? road_width * roadScale : 0);
+  const poleX = roadEdgeX - sideSign * pole_offset * roadScale;
   const poleTop = roadY - height * poleScale;
-  const armEndX = poleX + arm_length * roadScale;
+  const armEndX = poleX + sideSign * arm_length * roadScale;
 
   const roadPx = road_width * roadScale;
   const swlPx = sidewalk_left * roadScale;
@@ -81,8 +82,8 @@ const RoadSectionView: React.FC = () => {
             <>
               <line x1={poleX} y1={roadBase - 20} x2={roadEdgeX} y2={roadBase - 20}
                     stroke="#64748b" strokeWidth="1"/>
-              <polygon points={`${poleX},${roadBase - 20} ${poleX + 5},${roadBase - 24} ${poleX + 5},${roadBase - 16}`} fill="#64748b"/>
-              <polygon points={`${roadEdgeX},${roadBase - 20} ${roadEdgeX - 5},${roadBase - 24} ${roadEdgeX - 5},${roadBase - 16}`} fill="#64748b"/>
+              <polygon points={`${poleX},${roadBase - 20} ${poleX + sideSign * 5},${roadBase - 24} ${poleX + sideSign * 5},${roadBase - 16}`} fill="#64748b"/>
+              <polygon points={`${roadEdgeX},${roadBase - 20} ${roadEdgeX - sideSign * 5},${roadBase - 24} ${roadEdgeX - sideSign * 5},${roadBase - 16}`} fill="#64748b"/>
               <rect x={(poleX + roadEdgeX) / 2 - 22} y={roadBase - 41} width="44" height="16" rx="3" fill="white" opacity="0.9"/>
               <text x={(poleX + roadEdgeX) / 2} y={roadBase - 29}
                     textAnchor="middle" fontSize="10" fill="#1e293b" fontWeight="600">
@@ -99,9 +100,9 @@ const RoadSectionView: React.FC = () => {
           {/* Luminaire head — with tilt indicator */}
           <g transform={`translate(${armEndX}, ${poleTop})`}>
             {/* Horizontal reference line (always shown) */}
-            <line x1="0" y1="0" x2="32" y2="0" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4,3"/>
+            <line x1="0" y1="0" x2={32 * sideSign} y2="0" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4,3"/>
             {/* Tilted luminaire */}
-            <g transform={`rotate(${-tilt})`}>
+            <g transform={`scale(${sideSign}, 1) rotate(${-tilt})`}>
               {/* Luminaire body */}
               <rect x="-4" y="-14" width="24" height="10" fill="#2563eb" rx="1.5"/>
               <rect x="-4" y="-14" width="5" height="10" fill="#1d4ed8" rx="1.5"/>
@@ -111,12 +112,12 @@ const RoadSectionView: React.FC = () => {
             </g>
             {/* Angle arc */}
             {tilt !== 0 && (
-              <path d={`M 22,0 A 22,22 0 0,${tiltArcSweep} ${tiltArcEndX},${tiltArcEndY}`}
+              <path d={`M ${22 * sideSign},0 A 22,22 0 0,${tiltArcSweep} ${tiltArcEndX * sideSign},${tiltArcEndY}`}
                     fill="none" stroke="#ef4444" strokeWidth="1.2"/>
             )}
             {/* Angle label (always shown) */}
-            <rect x="20" y="4" width="32" height="18" rx="3" fill="white" opacity="0.9"/>
-            <text x="36" y="16" textAnchor="middle" fontSize="11" fill="#ef4444" fontWeight="700">
+            <rect x={sideSign === 1 ? 20 : -52} y="4" width="32" height="18" rx="3" fill="white" opacity="0.9"/>
+            <text x={36 * sideSign} y="16" textAnchor="middle" fontSize="11" fill="#ef4444" fontWeight="700">
               {tilt.toFixed(0)}°
             </text>
           </g>
@@ -148,15 +149,15 @@ const RoadSectionView: React.FC = () => {
           <rect x={poleX + 12} y={(poleTop + roadBase) / 2 - 8} width="70" height="18" rx="3" fill="white" opacity="0.85"/>
           <text x={poleX + 16} y={(poleTop + roadBase) / 2 + 5}
                 textAnchor="start" fontSize="12" fill="#1e293b" fontWeight="600">
-            h = {height.toFixed(1)} m
+h = {height.toFixed(2)} m
           </text>
 
           {arm_length > 0 && (
             <>
               <line x1={armEndX} y1={poleTop - 10} x2={poleX} y2={poleTop - 10}
                     stroke="#64748b" strokeWidth="1"/>
-              <polygon points={`${armEndX},${poleTop - 10} ${armEndX + 5},${poleTop - 14} ${armEndX + 5},${poleTop - 6}`} fill="#64748b"/>
-              <polygon points={`${poleX},${poleTop - 10} ${poleX - 5},${poleTop - 14} ${poleX - 5},${poleTop - 6}`} fill="#64748b"/>
+              <polygon points={`${armEndX},${poleTop - 10} ${armEndX - sideSign * 5},${poleTop - 14} ${armEndX - sideSign * 5},${poleTop - 6}`} fill="#64748b"/>
+              <polygon points={`${poleX},${poleTop - 10} ${poleX + sideSign * 5},${poleTop - 14} ${poleX + sideSign * 5},${poleTop - 6}`} fill="#64748b"/>
               <text x={(armEndX + poleX) / 2} y={poleTop - 18}
                     textAnchor="middle" fontSize="11" fill="#1e293b" fontWeight="600">
                 {arm_length.toFixed(1)}m

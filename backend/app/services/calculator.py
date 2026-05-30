@@ -50,6 +50,7 @@ def run_calculation_with_photometry(
 ) -> CalculationResult:
     cfg = _config_to_cfg(config, photometry)
     result = evaluate(cfg, photometry, flux_scale=flux_scale, road=config.pavement)
+    _apply_uniformity_offset_sign(config, photometry, result, flux_scale)
     criteria = _build_criteria(result)
 
     return CalculationResult(
@@ -93,6 +94,39 @@ def _config_to_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
         "mf": config.mf,
         "class": config.lighting_class,
     }
+
+
+def _config_to_uniformity_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
+    cfg = _config_to_cfg(config, photometry)
+    cfg["arm"] = config.arm_length + config.pole_offset
+    return cfg
+
+
+def _apply_uniformity_offset_sign(
+    config: CalculationConfig,
+    photometry: Photometry,
+    result: dict,
+    flux_scale: float,
+) -> None:
+    if result.get("mode") != "ME" or abs(config.pole_offset) < 1e-9:
+        return
+
+    uniformity_cfg = _config_to_uniformity_cfg(config, photometry)
+    uniformity_result = evaluate(
+        uniformity_cfg,
+        photometry,
+        flux_scale=flux_scale,
+        road=config.pavement,
+    )
+
+    for key in ("Uo", "Ul", "ok_Uo", "ok_Ul"):
+        if key in uniformity_result:
+            result[key] = uniformity_result[key]
+
+    result["compliant"] = all(
+        result.get(key, False)
+        for key in ("ok_L", "ok_Uo", "ok_Ul", "ok_TI", "ok_SR")
+    )
 
 
 def _target_luminaire_info(config: CalculationConfig, photometry: Photometry, reference_info: dict) -> dict:

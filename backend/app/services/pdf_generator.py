@@ -176,8 +176,12 @@ def renderRoadPlanSvg(config: CalculationConfig):
     dims = []
     dims.append(_dimension(road_x, top + section_h + 28, road_x + usable_w, top + section_h + 28, f"Calculation length / spacing = {config.spacing:.1f} m"))
     dims.append(_dimension(road_x + usable_w + 28, road_y, road_x + usable_w + 28, road_y + road_h, f"Roadway = {config.road_width:.1f} m", vertical=True))
+    side_top = config.pole_side != "right"
     if config.pole_offset > 0:
-        dims.append(_dimension(road_x - 70, road_y - config.pole_offset * scale_y, road_x - 70, road_y, f"Pole offset = {config.pole_offset:.2f} m", vertical=True))
+        if side_top:
+            dims.append(_dimension(road_x - 70, road_y - config.pole_offset * scale_y, road_x - 70, road_y, f"Pole offset = {config.pole_offset:.2f} m", vertical=True))
+        else:
+            dims.append(_dimension(road_x - 70, road_y + road_h, road_x - 70, road_y + road_h + config.pole_offset * scale_y, f"Pole offset = {config.pole_offset:.2f} m", vertical=True))
     if config.sidewalk_left > 0:
         dims.append(_dimension(road_x - 26, top, road_x - 26, road_y, f"{config.sidewalk_left:.1f} m", vertical=True))
     if config.sidewalk_right > 0:
@@ -196,6 +200,7 @@ def renderRoadPlanSvg(config: CalculationConfig):
         arrows.append(_traffic_arrow(ax, ly, 70 * direction))
 
     luminaires = _plan_luminaires(config, road_x, road_y, usable_w, road_h, scale_x, scale_y)
+    mast_label_y = road_y - 12 if side_top else road_y + road_h + 24
 
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">
@@ -216,7 +221,7 @@ def renderRoadPlanSvg(config: CalculationConfig):
   <line x1="{road_x + usable_w}" y1="{top + section_h + 8:.1f}" x2="{road_x + usable_w}" y2="{top + section_h + 21:.1f}" stroke="#111827" stroke-width="1"/>
   <text x="{road_x:.1f}" y="{top + section_h + 42:.1f}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">0.00</text>
   <text x="{road_x + usable_w:.1f}" y="{top + section_h + 42:.1f}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">{config.spacing:.2f} m</text>
-  <text x="{road_x + usable_w - 6:.1f}" y="{road_y - 12:.1f}" text-anchor="end" font-size="11" font-weight="700" fill="#1e40af">mast positions / spacing</text>
+  <text x="{road_x + usable_w - 6:.1f}" y="{mast_label_y:.1f}" text-anchor="end" font-size="11" font-weight="700" fill="#1e40af">mast positions / spacing - {'sidewalk 1' if side_top else 'sidewalk 2'}</text>
   {''.join(dims)}
 </svg>
 """
@@ -238,8 +243,12 @@ def _plan_luminaires(config, road_x, road_y, usable_w, road_h, scale_x, scale_y)
 
     if config.arrangement == "Bilateral":
         for x in xs:
-            lum(x, y_pole_left, 1)
-            lum(x, y_pole_right, -1)
+            if config.pole_side == "right":
+                lum(x, y_pole_right, -1)
+                lum(x, y_pole_left, 1)
+            else:
+                lum(x, y_pole_left, 1)
+                lum(x, y_pole_right, -1)
     elif config.arrangement == "Central Doble":
         for x in xs:
             lum(x, road_y + road_h / 2, -1)
@@ -249,7 +258,10 @@ def _plan_luminaires(config, road_x, road_y, usable_w, road_h, scale_x, scale_y)
             lum(x, road_y + road_h / 2, 1)
     else:
         for x in xs:
-            lum(x, y_pole_left, 1)
+            if config.pole_side == "right":
+                lum(x, y_pole_right, -1)
+            else:
+                lum(x, y_pole_left, 1)
     return items
 
 
@@ -282,21 +294,24 @@ def _dimension(x1, y1, x2, y2, label, vertical=False):
 
 def renderRoadSectionSvg(config: CalculationConfig):
     """Render a technical transverse section with dimensions, arm, tilt and road proportions."""
-    width, height = 900, 420
-    ground_y = 300
+    width, height = 900, 440
+    ground_y = 292
     total_w = config.road_width + config.sidewalk_left + config.sidewalk_right
-    scale_x = 560 / max(total_w, 1)
+    scale_x = 520 / max(total_w, 1)
     left = (width - total_w * scale_x) / 2
     road_left = left + config.sidewalk_left * scale_x
     road_w = config.road_width * scale_x
-    pole_x = road_left - config.pole_offset * scale_x
-    pole_top = 74
+    side_sign = -1 if config.pole_side == "right" else 1
+    road_edge_x = road_left + road_w if config.pole_side == "right" else road_left
+    pole_x = road_edge_x - side_sign * config.pole_offset * scale_x
+    pole_top = 94
     pole_scale = (ground_y - pole_top) / max(config.height, 1)
-    arm_px = config.arm_length * scale_x
+    arm_px = side_sign * config.arm_length * scale_x
     head_x = pole_x + arm_px
     tilt_rad = math.radians(config.tilt)
-    head_len, head_h = 58, 18
+    head_len, head_h = 66, 18
     head_angle = -config.tilt
+    label_x = min(max(head_x + 118, 560), 810)
 
     lanes = []
     for i in range(1, config.lanes):
@@ -304,14 +319,14 @@ def renderRoadSectionSvg(config: CalculationConfig):
         lanes.append(f'<line x1="{x:.1f}" y1="{ground_y + 8}" x2="{x:.1f}" y2="{ground_y + 40}" stroke="white" stroke-width="2" stroke-dasharray="7 6"/>')
 
     dims = [
-        _dimension(road_left, ground_y + 66, road_left + road_w, ground_y + 66, f"Roadway = {config.road_width:.1f} m"),
-        _dimension(left, ground_y + 90, left + total_w * scale_x, ground_y + 90, f"Total width = {total_w:.1f} m"),
-        _dimension(pole_x - 34, pole_top, pole_x - 34, ground_y, f"Mounting height = {config.height:.1f} m", vertical=True),
+        _dimension(road_left, ground_y + 76, road_left + road_w, ground_y + 76, f"Roadway = {config.road_width:.1f} m"),
+        _dimension(left, ground_y + 104, left + total_w * scale_x, ground_y + 104, f"Total width = {total_w:.1f} m"),
+        _dimension(pole_x - 52, pole_top, pole_x - 52, ground_y, f"Mounting height = {config.height:.1f} m", vertical=True),
     ]
     if config.arm_length > 0:
-        dims.append(_dimension(pole_x, pole_top - 22, head_x, pole_top - 22, f"Overhang / arm = {config.arm_length:.1f} m"))
+        dims.append(_dimension(pole_x, pole_top - 34, head_x, pole_top - 34, f"Arm = {config.arm_length:.1f} m"))
     if config.pole_offset > 0:
-        dims.append(_dimension(pole_x, ground_y - 22, road_left, ground_y - 22, f"Pole offset = {config.pole_offset:.2f} m"))
+        dims.append(_dimension(pole_x, ground_y - 26, road_edge_x, ground_y - 26, f"Pole offset = {config.pole_offset:.2f} m"))
 
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">
@@ -325,29 +340,30 @@ def renderRoadSectionSvg(config: CalculationConfig):
   <line x1="{pole_x:.1f}" y1="{ground_y}" x2="{pole_x:.1f}" y2="{pole_top:.1f}" stroke="#263241" stroke-width="9" stroke-linecap="square"/>
   <rect x="{pole_x - 16:.1f}" y="{ground_y - 7}" width="32" height="10" fill="#263241"/>
   <line x1="{pole_x:.1f}" y1="{pole_top:.1f}" x2="{head_x:.1f}" y2="{pole_top:.1f}" stroke="#263241" stroke-width="6" stroke-linecap="round"/>
-  <circle cx="{pole_x - 55:.1f}" cy="{(pole_top + ground_y) / 2:.1f}" r="14" fill="white" stroke="#111827" stroke-width="2"/>
-  <text x="{pole_x - 55:.1f}" y="{(pole_top + ground_y) / 2 + 5:.1f}" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">1</text>
-  <circle cx="{(pole_x + head_x) / 2:.1f}" cy="{pole_top - 48:.1f}" r="14" fill="white" stroke="#111827" stroke-width="2"/>
-  <text x="{(pole_x + head_x) / 2:.1f}" y="{pole_top - 43:.1f}" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">2</text>
-  <g transform="rotate({head_angle:.1f} {head_x:.1f} {pole_top:.1f})">
-    <rect x="{head_x:.1f}" y="{pole_top - head_h / 2:.1f}" width="{head_len}" height="{head_h}" rx="3" fill="#2563eb"/>
-    <line x1="{head_x + 5:.1f}" y1="{pole_top + head_h / 2 + 3:.1f}" x2="{head_x + head_len - 7:.1f}" y2="{pole_top + head_h / 2 + 3:.1f}" stroke="#60a5fa" stroke-width="2"/>
+  <g transform="translate({head_x:.1f} {pole_top:.1f}) scale({side_sign} 1) rotate({head_angle:.1f})">
+    <rect x="0" y="{-head_h / 2:.1f}" width="{head_len}" height="{head_h}" rx="3" fill="#2563eb"/>
+    <line x1="5" y1="{head_h / 2 + 3:.1f}" x2="{head_len - 7:.1f}" y2="{head_h / 2 + 3:.1f}" stroke="#60a5fa" stroke-width="2"/>
   </g>
-  <circle cx="{head_x + 70:.1f}" cy="{pole_top - 32:.1f}" r="14" fill="white" stroke="#111827" stroke-width="2"/>
-  <text x="{head_x + 70:.1f}" y="{pole_top - 27:.1f}" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">3</text>
-  <circle cx="{head_x + 8:.1f}" cy="{pole_top + 40:.1f}" r="14" fill="white" stroke="#111827" stroke-width="2"/>
-  <text x="{head_x + 8:.1f}" y="{pole_top + 45:.1f}" text-anchor="middle" font-size="14" font-weight="900" fill="#111827">4</text>
   <path d="M {head_x + 72:.1f} {pole_top:.1f} A 45 45 0 0 {1 if config.tilt >= 0 else 0} {head_x + 72 * math.cos(tilt_rad):.1f} {pole_top - 72 * math.sin(tilt_rad):.1f}" fill="none" stroke="#ef4444" stroke-width="1.6"/>
-  <text x="{head_x + 82:.1f}" y="{pole_top - 12 if config.tilt >= 0 else pole_top + 26:.1f}" font-size="12" font-weight="800" fill="#ef4444">{config.tilt:.0f}&#176;</text>
-  <text x="{pole_x + 18:.1f}" y="{ground_y - 18:.1f}" font-size="11" font-weight="700" fill="#475569">pole at road edge, luminaire projected over carriageway</text>
+  <rect x="{head_x + 74:.1f}" y="{pole_top - 23 if config.tilt >= 0 else pole_top + 12:.1f}" width="42" height="18" rx="3" fill="white" stroke="#fecaca"/>
+  <text x="{head_x + 95:.1f}" y="{pole_top - 10 if config.tilt >= 0 else pole_top + 25:.1f}" text-anchor="middle" font-size="12" font-weight="800" fill="#ef4444">{config.tilt:.0f}&#176;</text>
+  <line x1="{head_x + side_sign * (head_len + 8):.1f}" y1="{pole_top:.1f}" x2="{label_x - 12:.1f}" y2="{pole_top:.1f}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4"/>
+  <rect x="{label_x:.1f}" y="74" width="220" height="106" rx="7" fill="#f8fafc" stroke="#dbe3ef"/>
+  <text x="{label_x + 12:.1f}" y="96" font-size="12" font-weight="800" fill="#0f172a">Luminaire position</text>
+  <text x="{label_x + 12:.1f}" y="118" font-size="11" fill="#334155">Arm length: {config.arm_length:.2f} m</text>
+  <text x="{label_x + 12:.1f}" y="138" font-size="11" fill="#334155">Pole offset: {config.pole_offset:.2f} m</text>
+  <text x="{label_x + 12:.1f}" y="158" font-size="11" fill="#334155">Pole side: {'Right sidewalk' if config.pole_side == 'right' else 'Left sidewalk'}</text>
+  <text x="{label_x + 12:.1f}" y="176" font-size="11" fill="#334155">Effective overhang: {config.arm_length - config.pole_offset:.2f} m</text>
+  <rect x="{pole_x + 14:.1f}" y="{ground_y - 39:.1f}" width="260" height="18" rx="3" fill="white" opacity="0.94"/>
+  <text x="{pole_x + 22:.1f}" y="{ground_y - 26:.1f}" font-size="10.5" font-weight="700" fill="#475569">Pole outside roadway; luminaire projected over carriageway</text>
   {''.join(dims)}
 </svg>
 """
 
 
-def _cfg_dict(config: CalculationConfig):
+def _cfg_dict(config: CalculationConfig, visual: bool = False):
     effective_overhang = config.arm_length - config.pole_offset
-    return {
+    cfg = {
         "arrangement": config.arrangement,
         "h": config.height,
         "S": config.spacing,
@@ -357,6 +373,9 @@ def _cfg_dict(config: CalculationConfig):
         "mf": config.mf,
         "class": config.lighting_class,
     }
+    if visual:
+        cfg["pole_side"] = config.pole_side
+    return cfg
 
 
 def _calculation_grids(result: CalculationResult, ldt_id: str):
@@ -405,7 +424,7 @@ def _calculation_grids(result: CalculationResult, ldt_id: str):
 
 
 def _visible_luminaires(config: CalculationConfig, photometry, flux_scale):
-    cfg = _cfg_dict(config)
+    cfg = _cfg_dict(config, visual=True)
     luminaires = build_luminaires(cfg, photometry, flux_scale=flux_scale)
     margin = max(config.spacing * 0.02, 0.5)
     return [
@@ -454,7 +473,7 @@ def _field_contours(x_coords, y_coords, values, level):
 
 
 def _dense_isoline_field(calculationGrid, config: CalculationConfig, photometry, flux_scale, include_sidewalks):
-    cfg = _cfg_dict(config)
+    cfg = _cfg_dict(config, visual=True)
     luminaires = build_luminaires(cfg, photometry, flux_scale=flux_scale)
     nx, ny = 74, 46
     x_min, x_max = 0.0, config.spacing

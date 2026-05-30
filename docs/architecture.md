@@ -60,6 +60,7 @@ Luminaire
 7. Para LDT externo temporal, no se estima ni se adapta nada: se calcula con la fotometria y flujo exactos del archivo cargado, usando escala 1.0.
 8. En calculo manual con DB, el motor calcula con `flux_scale = target_flux / reference_flux`.
 9. Si no hay suficientes puntos para interpolar en DB, se usa la eficiencia/curva de potencia del LDT de referencia como fallback.
+10. `Pole offset from road edge` se mantiene positivo en UI, planos e informes cuando el poste se aleja de la calzada. `pole_side` indica si la instalacion unilateral se dibuja en la acera izquierda o derecha; en disposiciones alternas define el lado inicial de la representacion. No altera el calculo normativo porque el motor actual usa una geometria canonica de calzada. Solo para los calculos de uniformidad `Uo` y `Ul`, el backend invierte el signo del offset y evalua la geometria como `arm_length + pole_offset`; el resto de metricas mantiene `arm_length - pole_offset`.
 
 ### Optimizacion automatica v1
 - La primera version del optimizador es intencionadamente simple.
