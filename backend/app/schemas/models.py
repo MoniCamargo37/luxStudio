@@ -79,9 +79,6 @@ class BatchCalculationItem(BaseModel):
     row: int
     config: Optional[CalculationConfig] = None
     result: Optional[CalculationResult] = None
-    real_result: Optional[CalculationResult] = None
-    comparison: Optional[dict[str, Optional[float]]] = None
-    source: Optional[str] = None
     error: Optional[str] = None
 
 
@@ -89,3 +86,30 @@ class BatchCalculationResponse(BaseModel):
     filename: str
     count: int
     items: list[BatchCalculationItem]
+
+
+class OptimizationResponse(BaseModel):
+    feasible: bool
+    message: str
+    objective: str
+    fixed_parameters: list[str]
+    checked: int
+    config: Optional[CalculationConfig] = None
+    result: Optional[CalculationResult] = None
+
+
+class AdvancedOptimizationVariables(BaseModel):
+    power: bool = True
+    spacing: bool = False
+    height: bool = False
+    optic_family: bool = False
+
+
+class AdvancedOptimizationRequest(BaseModel):
+    config: CalculationConfig
+    variables: AdvancedOptimizationVariables = Field(default_factory=AdvancedOptimizationVariables)
+    objective: str = Field(
+        default="technical_limits",
+        pattern=r"^(technical_limits|min_power|max_spacing)$",
+    )
+    optic_families: Optional[list[str]] = None

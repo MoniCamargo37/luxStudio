@@ -6,9 +6,16 @@ from typing import Optional
 from fastapi import APIRouter, File, UploadFile
 from openpyxl import load_workbook
 
-from ..schemas.models import BatchCalculationItem, BatchCalculationResponse, CalculationConfig, CalculationResult
-from ..services.calculator import run_calculation, run_calculation_with_photometry
-from ..services.ldt_loader import get_all_ldts, get_photometry
+from ..schemas.models import (
+    AdvancedOptimizationRequest,
+    BatchCalculationItem,
+    BatchCalculationResponse,
+    CalculationConfig,
+    CalculationResult,
+    OptimizationResponse,
+)
+from ..services.calculator import run_calculation
+from ..services.ldt_loader import get_all_ldts
 from ..services.ldt_matcher import require_ldt_for_config
 
 router = APIRouter()
@@ -21,100 +28,385 @@ async def calculate(config: CalculationConfig):
     return run_calculation(config, ldt_id)
 
 
-@router.post("/formula-ldt-batch", response_model=BatchCalculationResponse)
-async def calculate_formula_ldt_batch(config: CalculationConfig):
-    """Calculate catalog variants by scaling the selected LDT photometry as a base."""
-    base_ldt_id, base_ldt = require_ldt_for_config(config)
-    base_photometry = get_photometry(base_ldt_id)
-    if base_photometry is None:
-        raise ValueError(f"LDT not found: {base_ldt_id}")
+OPTIMIZATION_OBJECTIVE = "Minimize luminaire power while satisfying all active EN 13201 criteria"
+ADVANCED_OPTIMIZATION_OBJECTIVE = "Fit the solution close to the EN 13201 limits while staying compliant"
+ADVANCED_OBJECTIVE_LABELS = {
+    "technical_limits": "Fit the solution close to the EN 13201 limits while staying compliant",
+    "min_power": "Minimize luminaire power while satisfying all active EN 13201 criteria",
+    "max_spacing": "Maximize pole spacing while satisfying all active EN 13201 criteria",
+}
+OPTIMIZATION_MIN_POWER = 1.0
+OPTIMIZATION_MAX_POWER = 500.0
+OPTIMIZATION_PRECISION = 0.1
+SPACING_CANDIDATES = [60.0, 55.0, 50.0, 45.0, 40.0, 35.0, 30.0, 25.0, 20.0, 15.0, 10.0, 5.0]
+HEIGHT_CANDIDATES = [4.0, 6.0, 8.0, 9.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0]
+OPTIMIZATION_FIXED_PARAMETERS = [
+    "road_width",
+    "sidewalk_left",
+    "sidewalk_right",
+    "lanes",
+    "pavement",
+    "lighting_class",
+    "maintenance_factor",
+    "arrangement",
+    "spacing",
+    "height",
+    "arm_length",
+    "pole_offset",
+    "tilt",
+    "power",
+    "manufacturer",
+    "model_family",
+    "optic_family",
+    "cct",
+]
 
-    base_key = (
-        base_ldt.get("manufacturer", "Unknown"),
-        base_ldt.get("model_family", "UNKNOWN"),
-        base_ldt.get("optic_family", config.optic_family),
+
+def _advanced_objective_label(objective: str) -> str:
+    return ADVANCED_OBJECTIVE_LABELS.get(objective, ADVANCED_OPTIMIZATION_OBJECTIVE)
+
+
+def _failed_criteria(result: CalculationResult) -> str:
+    failed = [item for item in result.criteria if not item.passed]
+    if not failed:
+        return "none"
+    return ", ".join(
+        f"{item.name}: {item.value:.3g} / required {item.required:.3g}"
+        for item in failed
     )
-    variants = [
-        item for item in get_all_ldts()
-        if (
-            item.get("manufacturer", "Unknown"),
-            item.get("model_family", "UNKNOWN"),
-            item.get("optic_family", config.optic_family),
-        ) == base_key
-    ]
-    variants.sort(key=lambda item: (
-        int(item.get("cct", config.cct)),
-        float(item.get("power", 0)),
-        float(item.get("flux", 0)),
-        item.get("filename", ""),
-    ))
 
-    def compare_results(formula_result: CalculationResult, real_result: CalculationResult):
-        metric_keys = ["Eavg", "Emin"] if formula_result.mode == "P" else ["Lavg", "Uo", "Ul", "TI", "SR"]
-        comparison: dict[str, Optional[float]] = {}
-        deviations = []
-        for key in metric_keys:
-            formula_value = getattr(formula_result, key, None)
-            real_value = getattr(real_result, key, None)
-            if formula_value is None or real_value is None:
-                comparison[f"{key}_formula"] = formula_value
-                comparison[f"{key}_real"] = real_value
-                comparison[f"{key}_deviation_pct"] = None
+
+def _with_power(config: CalculationConfig, power: float, ldt_id: str) -> CalculationConfig:
+    return CalculationConfig(**{
+        **config.model_dump(),
+        "power": power,
+        "ldt_id": ldt_id,
+    })
+
+
+def _with_updates(config: CalculationConfig, updates: dict, ldt_id: str) -> CalculationConfig:
+    return CalculationConfig(**{
+        **config.model_dump(),
+        **updates,
+        "ldt_id": ldt_id,
+    })
+
+
+def _unique_candidates(values: list[float], current: float) -> list[float]:
+    rounded = {round(value, 2) for value in values}
+    rounded.add(round(current, 2))
+    return sorted(rounded, reverse=True)
+
+
+def _fixed_parameters_for(unlocked: set[str]) -> list[str]:
+    return [item for item in OPTIMIZATION_FIXED_PARAMETERS if item not in unlocked]
+
+
+def _advanced_score(result: CalculationResult, original: CalculationConfig, objective: str) -> tuple[float, float, float]:
+    movement = abs(result.config.height - original.height) + abs(result.config.spacing - original.spacing)
+    if objective == "min_power":
+        return (
+            result.config.power,
+            result.config.power / max(result.config.spacing, 0.1),
+            movement,
+        )
+    if objective == "max_spacing":
+        return (
+            -result.config.spacing,
+            result.config.power / max(result.config.spacing, 0.1),
+            result.config.power,
+        )
+    technical_score, largest_margin = _technical_limit_score(result)
+    return (technical_score, largest_margin, movement)
+
+
+def _technical_limit_score(result: CalculationResult) -> tuple[float, float]:
+    margins = []
+    for criterion in result.criteria:
+        required = float(criterion.required or 0)
+        value = float(criterion.value or 0)
+        if required <= 0:
+            continue
+        if criterion.name.upper().startswith("TI"):
+            margin = max(0.0, (required - value) / required)
+        else:
+            margin = max(0.0, (value - required) / required)
+        margins.append(margin)
+
+    if not margins:
+        return 0.0, 0.0
+    return sum(margin * margin for margin in margins), max(margins)
+
+
+def _optimize_power_for_config(config: CalculationConfig, ldt_id: str) -> tuple[bool, int, CalculationResult, str]:
+    checked = 0
+    results_by_power: dict[float, CalculationResult] = {}
+
+    def calculate_power(power: float) -> CalculationResult:
+        nonlocal checked
+        key = round(max(OPTIMIZATION_MIN_POWER, min(OPTIMIZATION_MAX_POWER, power)), 4)
+        if key not in results_by_power:
+            results_by_power[key] = run_calculation(_with_power(config, key, ldt_id), ldt_id)
+            checked += 1
+        return results_by_power[key]
+
+    current_power = max(OPTIMIZATION_MIN_POWER, min(OPTIMIZATION_MAX_POWER, float(config.power)))
+    current_result = calculate_power(current_power)
+    high: Optional[float] = None
+    low: float = OPTIMIZATION_MIN_POWER
+
+    if current_result.compliant:
+        high = current_power
+        probe = current_power
+        while probe > OPTIMIZATION_MIN_POWER:
+            next_probe = max(OPTIMIZATION_MIN_POWER, probe / 2.0)
+            probe_result = calculate_power(next_probe)
+            if probe_result.compliant:
+                high = next_probe
+                probe = next_probe
+            else:
+                low = next_probe
+                break
+    else:
+        max_power_result = calculate_power(OPTIMIZATION_MAX_POWER)
+        if max_power_result.compliant:
+            low = current_power
+            high = OPTIMIZATION_MAX_POWER
+
+    if high is None:
+        max_result = results_by_power.get(OPTIMIZATION_MAX_POWER) or calculate_power(OPTIMIZATION_MAX_POWER)
+        return False, checked, current_result, _failed_criteria(max_result)
+
+    while high - low > OPTIMIZATION_PRECISION / 2.0:
+        mid = (low + high) / 2.0
+        result = calculate_power(mid)
+        if result.compliant:
+            high = mid
+        else:
+            low = mid
+
+    final_power = round(high, 1)
+    final_result = calculate_power(final_power)
+
+    # Rounding down to one decimal can sit just below the real threshold.
+    while not final_result.compliant and final_power < OPTIMIZATION_MAX_POWER:
+        final_power = round(final_power + 0.1, 1)
+        final_result = calculate_power(final_power)
+
+    return True, checked, final_result, "none"
+
+
+def _advanced_unlocked(variables) -> set[str]:
+    unlocked = set()
+    if variables.power:
+        unlocked.add("power")
+    if variables.spacing:
+        unlocked.add("spacing")
+    if variables.height:
+        unlocked.add("height")
+    if getattr(variables, "optic_family", False):
+        unlocked.add("optic_family")
+    return unlocked
+
+
+def _run_advanced_search(
+    config: CalculationConfig,
+    variables,
+    objective: str,
+    ldt_id: str,
+    objective_label: str,
+) -> OptimizationResponse:
+    spacing_values = _unique_candidates(SPACING_CANDIDATES, config.spacing) if variables.spacing else [config.spacing]
+    height_values = _unique_candidates(HEIGHT_CANDIDATES, config.height) if variables.height else [config.height]
+    unlocked = _advanced_unlocked(variables)
+
+    checked = 0
+    best_result: Optional[CalculationResult] = None
+    best_score: Optional[tuple[float, float, float]] = None
+    first_failure = "none"
+    last_result: Optional[CalculationResult] = None
+
+    for spacing in spacing_values:
+        for height in height_values:
+            candidate_config = _with_updates(config, {"spacing": spacing, "height": height}, ldt_id)
+            if variables.power:
+                feasible, candidate_checked, result, failures = _optimize_power_for_config(candidate_config, ldt_id)
+                checked += candidate_checked
+            else:
+                result = run_calculation(candidate_config, ldt_id)
+                checked += 1
+                feasible = result.compliant
+                failures = _failed_criteria(result)
+
+            last_result = result
+            if not feasible:
+                if first_failure == "none":
+                    first_failure = failures
                 continue
 
-            comparison[f"{key}_formula"] = float(formula_value)
-            comparison[f"{key}_real"] = float(real_value)
-            if abs(float(real_value)) < 1e-9:
-                deviation = 0.0 if abs(float(formula_value)) < 1e-9 else None
-            else:
-                deviation = ((float(formula_value) - float(real_value)) / float(real_value)) * 100.0
-            comparison[f"{key}_deviation_pct"] = deviation
-            if deviation is not None:
-                deviations.append(abs(deviation))
+            score = _advanced_score(result, config, objective)
+            if best_score is None or score < best_score:
+                best_score = score
+                best_result = result
 
-        comparison["max_abs_deviation_pct"] = max(deviations) if deviations else None
-        comparison["formula_compliant"] = 1.0 if formula_result.compliant else 0.0
-        comparison["real_compliant"] = 1.0 if real_result.compliant else 0.0
-        return comparison
+    if best_result is None:
+        fallback = last_result or run_calculation(config, ldt_id)
+        if last_result is None:
+            checked += 1
+        return OptimizationResponse(
+            feasible=False,
+            message=(
+                "No compliant solution was found with the selected advanced variables. "
+                f"Failing criteria seen during search: {first_failure}."
+            ),
+            objective=objective_label,
+            fixed_parameters=_fixed_parameters_for(unlocked),
+            checked=checked,
+            config=config,
+            result=fallback,
+        )
 
-    items = []
-    for index, variant in enumerate(variants, start=1):
+    return OptimizationResponse(
+        feasible=True,
+        message=(
+            f"Best compliant setup found for selected priority: {best_result.config.power:.1f} W at "
+            f"{best_result.config.spacing:.1f} m spacing and {best_result.config.height:.1f} m height."
+        ),
+        objective=objective_label,
+        fixed_parameters=_fixed_parameters_for(unlocked),
+        checked=checked,
+        config=best_result.config,
+        result=best_result,
+    )
+
+
+def _optic_candidates(config: CalculationConfig, requested: Optional[list[str]]) -> list[str]:
+    requested_set = set(requested or [])
+    candidates = [
+        item.get("optic_family")
+        for item in get_all_ldts()
+        if item.get("manufacturer", "Unknown") == config.manufacturer
+        and item.get("model_family", "UNKNOWN") == config.model_family
+        and item.get("optic_family")
+        and (not requested_set or item.get("optic_family") in requested_set)
+    ]
+    unique = sorted(set(candidates))
+    return unique or [config.optic_family]
+
+
+@router.post("/optimize/simple", response_model=OptimizationResponse)
+async def optimize_simple(config: CalculationConfig):
+    """Find the lowest compliant power while keeping the selected geometry and luminaire fixed."""
+    ldt_id, _ = require_ldt_for_config(config)
+
+    if ldt_id.startswith("temp-"):
+        exact_result = run_calculation(config, ldt_id)
+        return OptimizationResponse(
+            feasible=False,
+            message=(
+                "External LDTs are calculated exactly. Auto optimize v1 uses the DB reference "
+                "and power/CCT formulas, so select a catalog luminaire to optimize power."
+            ),
+            objective=OPTIMIZATION_OBJECTIVE,
+            fixed_parameters=_fixed_parameters_for({"power"}),
+            checked=1,
+            config=config,
+            result=exact_result,
+        )
+
+    feasible, checked, result, failures = _optimize_power_for_config(config, ldt_id)
+    if not feasible:
+        return OptimizationResponse(
+            feasible=False,
+            message=(
+                "No compliant solution was found by changing power only up to 500 W. "
+                f"Failing criteria at the upper limit: {failures}."
+            ),
+            objective=OPTIMIZATION_OBJECTIVE,
+            fixed_parameters=_fixed_parameters_for({"power"}),
+            checked=checked,
+            config=config,
+            result=result,
+        )
+
+    return OptimizationResponse(
+        feasible=True,
+        message=f"Minimum compliant power found: {result.config.power:.1f} W.",
+        objective=OPTIMIZATION_OBJECTIVE,
+        fixed_parameters=_fixed_parameters_for({"power"}),
+        checked=checked,
+        config=result.config,
+        result=result,
+    )
+
+
+@router.post("/optimize/advanced", response_model=OptimizationResponse)
+async def optimize_advanced(request: AdvancedOptimizationRequest):
+    """Optimize selected installation variables against installed W/m."""
+    config = request.config
+    variables = request.variables
+    objective = request.objective
+    objective_label = _advanced_objective_label(objective)
+    ldt_id, _ = require_ldt_for_config(config)
+
+    if ldt_id.startswith("temp-"):
+        exact_result = run_calculation(config, ldt_id)
+        return OptimizationResponse(
+            feasible=False,
+            message=(
+                "External LDTs are calculated exactly. Advanced optimization uses the DB reference "
+                "and formulas, so select a catalog luminaire first."
+            ),
+            objective=objective_label,
+            fixed_parameters=_fixed_parameters_for(set()),
+            checked=1,
+            config=config,
+            result=exact_result,
+        )
+
+    return _run_advanced_search(config, variables, objective, ldt_id, objective_label)
+
+
+@router.post("/optimize/advanced-batch", response_model=BatchCalculationResponse)
+async def optimize_advanced_batch(request: AdvancedOptimizationRequest):
+    """Optimize each selected optic and return one downloadable row per lens."""
+    config = request.config
+    variables = request.variables.model_copy(update={"optic_family": True})
+    objective = request.objective
+    objective_label = _advanced_objective_label(objective)
+    items: list[BatchCalculationItem] = []
+
+    for row, optic_family in enumerate(_optic_candidates(config, request.optic_families), start=1):
         try:
-            variant_config = CalculationConfig(**{
-                **config.model_dump(),
-                "ldt_id": variant.get("id"),
-                "manufacturer": variant.get("manufacturer"),
-                "model_family": variant.get("model_family"),
-                "optic_family": variant.get("optic_family", config.optic_family),
-                "power": variant.get("power", config.power),
-                "cct": variant.get("cct", config.cct),
-            })
-            base_flux = float(getattr(base_photometry, "flux", 0) or 0)
-            variant_flux = float(variant.get("flux", base_flux) or base_flux)
-            flux_scale = variant_flux / base_flux if base_flux > 0 else 1.0
-            formula_result = run_calculation_with_photometry(variant_config, base_photometry, variant, flux_scale=flux_scale)
-            variant_photometry = get_photometry(variant["id"])
-            if variant_photometry is None:
-                raise ValueError(f"LDT not found: {variant['id']}")
-            real_result = run_calculation_with_photometry(variant_config, variant_photometry, variant, flux_scale=1.0)
+            optic_config = _with_updates(config, {"optic_family": optic_family, "ldt_id": None}, "")
+            ldt_id, _ = require_ldt_for_config(optic_config)
+            if ldt_id.startswith("temp-"):
+                raise ValueError("External LDTs cannot be used for lens batch optimization.")
+            response = _run_advanced_search(optic_config, variables, objective, ldt_id, objective_label)
+            if not response.result or not response.config:
+                raise ValueError(response.message)
+            if not response.feasible:
+                items.append(BatchCalculationItem(
+                    model_id=f"{config.model_family or 'Luminaire'} {optic_family}",
+                    row=row,
+                    error=response.message,
+                ))
+                continue
             items.append(BatchCalculationItem(
-                model_id=f"{variant.get('model_family', 'LDT')} {variant.get('optic_family', '')} {variant.get('cct', config.cct)}K {variant.get('power', 0):g}W",
-                row=index,
-                config=variant_config,
-                result=formula_result,
-                real_result=real_result,
-                comparison=compare_results(formula_result, real_result),
-                source="formula_vs_real_ldt",
+                model_id=f"{config.model_family or 'Luminaire'} {optic_family}",
+                row=row,
+                config=response.config,
+                result=response.result,
             ))
         except Exception as exc:
             items.append(BatchCalculationItem(
-                model_id=f"{variant.get('model_family', 'LDT')} {variant.get('optic_family', '')} {variant.get('cct', config.cct)}K {variant.get('power', 0):g}W",
-                row=index,
+                model_id=f"{config.model_family or 'Luminaire'} {optic_family}",
+                row=row,
                 error=str(exc),
             ))
 
     return BatchCalculationResponse(
-        filename=f"Formula test from {base_ldt.get('filename', base_ldt_id)}",
+        filename=f"Optimized lenses - {config.manufacturer or ''} {config.model_family or ''}".strip(),
         count=len(items),
         items=items,
     )

@@ -5,7 +5,7 @@ import MainLayout from './layouts/MainLayout';
 import GeometryPanel from './components/panels/GeometryPanel';
 import ArrangementPanel from './components/panels/ArrangementPanel';
 import LuminairePanel from './components/panels/LuminairePanel';
-import FormulaLdtBatchPanel from './components/panels/FormulaLdtBatchPanel';
+import AutoOptimizePanel from './components/panels/AutoOptimizePanel';
 import BatchExcelPanel from './components/panels/BatchExcelPanel';
 import BatchResultsPanel from './components/panels/BatchResultsPanel';
 import ResultsPanel from './components/panels/ResultsPanel';
@@ -14,7 +14,15 @@ import RoadPlanView from './components/canvas/RoadPlanView';
 import RoadSectionView from './components/canvas/RoadSectionView';
 import LuminaireTable from './components/admin/LuminaireTable';
 import LuminaireForm from './components/admin/LuminaireForm';
-import type { BatchCalculationResponse, LDTInfo } from './types';
+import type {
+  AdvancedOptimizationObjective,
+  AdvancedOptimizationVariables,
+  BatchCalculationResponse,
+  LDTInfo,
+  OptimizationLensResult,
+  OptimizationReport,
+  OptimizationResponse,
+} from './types';
 import './App.css';
 
 const buildCalculationRequest = () => {
@@ -42,16 +50,88 @@ const buildCalculationRequest = () => {
   };
 };
 
+const formatWatts = (value: number) => `${value.toFixed(1)} W`;
+const formatMeters = (value: number) => `${value.toFixed(1)} m`;
+
+const buildOptimizationChanges = (
+  beforeConfig: ReturnType<typeof buildCalculationRequest>,
+  afterConfig: any,
+) => {
+  const beforePower = Number(beforeConfig.power);
+  const afterPower = Number(afterConfig.power ?? beforePower);
+  const beforeSpacing = Number(beforeConfig.spacing);
+  const afterSpacing = Number(afterConfig.spacing ?? beforeSpacing);
+  const beforeHeight = Number(beforeConfig.height);
+  const afterHeight = Number(afterConfig.height ?? beforeHeight);
+  const changes = [];
+
+  if (Number.isFinite(beforePower) && Number.isFinite(afterPower) && Math.abs(beforePower - afterPower) >= 0.05) {
+    changes.push({
+      label: 'Power',
+      before: formatWatts(beforePower),
+      after: formatWatts(afterPower),
+    });
+  }
+
+  if (Number.isFinite(beforeSpacing) && Number.isFinite(afterSpacing) && Math.abs(beforeSpacing - afterSpacing) >= 0.05) {
+    changes.push({
+      label: 'Spacing',
+      before: formatMeters(beforeSpacing),
+      after: formatMeters(afterSpacing),
+    });
+  }
+
+  if (Number.isFinite(beforeHeight) && Number.isFinite(afterHeight) && Math.abs(beforeHeight - afterHeight) >= 0.05) {
+    changes.push({
+      label: 'Height',
+      before: formatMeters(beforeHeight),
+      after: formatMeters(afterHeight),
+    });
+  }
+
+  return changes;
+};
+
+const buildOptimizationReport = (
+  beforeConfig: ReturnType<typeof buildCalculationRequest>,
+  data: OptimizationResponse,
+): OptimizationReport => {
+  const afterConfig = data.config ?? data.result?.config ?? beforeConfig;
+
+  return {
+    feasible: data.feasible,
+    message: data.message,
+    objective: data.objective,
+    checked: data.checked,
+    changes: buildOptimizationChanges(beforeConfig, afterConfig),
+  };
+};
+
 const Home: React.FC = () => {
-  const { results, loading, error, calculate, setResults, setLoading, setError } = useConfigStore();
+  const {
+    results,
+    loading,
+    error,
+    calculate,
+    setResults,
+    setLoading,
+    setError,
+    setPower,
+    setSpacing,
+    setHeight,
+  } = useConfigStore();
   const [batchResults, setBatchResults] = useState<BatchCalculationResponse | null>(null);
   const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [optimizationReport, setOptimizationReport] = useState<OptimizationReport | null>(null);
+  const [optimizationLensResults, setOptimizationLensResults] = useState<OptimizationLensResult[] | null>(null);
 
   const handleExcelFileChange = (file: File | null) => {
     setExcelFile(file);
     setBatchResults(null);
     setResults(null);
     setError(null);
+    setOptimizationReport(null);
+    setOptimizationLensResults(null);
   };
 
   const calculateExcel = async (file: File) => {
@@ -59,6 +139,8 @@ const Home: React.FC = () => {
     setError(null);
     setBatchResults(null);
     setResults(null);
+    setOptimizationReport(null);
+    setOptimizationLensResults(null);
 
     try {
       const formData = new FormData();
@@ -82,20 +164,22 @@ const Home: React.FC = () => {
     }
   };
 
-  const calculateFormulaLdtBatch = async () => {
+  const optimizeSimple = async () => {
     setLoading(true);
     setError(null);
     setBatchResults(null);
-    setResults(null);
     setExcelFile(null);
+    setOptimizationReport(null);
+    setOptimizationLensResults(null);
+    const beforeConfig = buildCalculationRequest();
 
     try {
-      const response = await fetch('/api/formula-ldt-batch', {
+      const response = await fetch('/api/optimize/simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(buildCalculationRequest()),
+        body: JSON.stringify(beforeConfig),
       });
 
       if (!response.ok) {
@@ -103,9 +187,99 @@ const Home: React.FC = () => {
         throw new Error(errData?.detail || `Server error (${response.status})`);
       }
 
-      setBatchResults(await response.json());
+      const data = await response.json() as OptimizationResponse;
+      if (data.result) {
+        setResults(data.result);
+      }
+      setOptimizationReport(buildOptimizationReport(beforeConfig, data));
+
+      if (!data.feasible) {
+        return;
+      }
+
+      if (typeof data.config?.power === 'number') {
+        setPower(data.config.power);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to calculate LDT formula batch');
+      setError(err.message || 'Failed to optimize calculation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const optimizeAdvanced = async (
+    variables: AdvancedOptimizationVariables,
+    objective: AdvancedOptimizationObjective,
+    opticFamilies: string[],
+  ) => {
+    setLoading(true);
+    setError(null);
+    setBatchResults(null);
+    setExcelFile(null);
+    setOptimizationReport(null);
+    setOptimizationLensResults(null);
+    const beforeConfig = buildCalculationRequest();
+
+    try {
+      const isLensBatch = variables.optic_family;
+      const response = await fetch(isLensBatch ? '/api/optimize/advanced-batch' : '/api/optimize/advanced', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: beforeConfig, variables, objective, optic_families: opticFamilies }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.detail || `Server error (${response.status})`);
+      }
+
+      if (isLensBatch) {
+        const batch = await response.json() as BatchCalculationResponse;
+        const lensRows: OptimizationLensResult[] = batch.items.map(item => ({
+          model_id: item.model_id,
+          optic_family: item.config?.optic_family ?? item.result?.luminaire.optic_family ?? item.model_id.split(' ').pop() ?? item.model_id,
+          feasible: Boolean(item.config && item.result && !item.error),
+          message: item.error,
+          config: item.config,
+          result: item.result,
+          changes: item.config ? buildOptimizationChanges(beforeConfig, item.config) : [],
+        }));
+        const firstFeasible = lensRows.find(item => item.feasible && item.result);
+        setOptimizationLensResults(lensRows);
+        setOptimizationReport({
+          feasible: Boolean(firstFeasible),
+          message: firstFeasible ? 'Optimized by lens.' : 'No selected lens found a compliant solution.',
+          objective,
+          checked: 0,
+          changes: [],
+        });
+        setResults(firstFeasible?.result ?? null);
+        return;
+      }
+
+      const data = await response.json() as OptimizationResponse;
+      if (data.result) {
+        setResults(data.result);
+      }
+      setOptimizationReport(buildOptimizationReport(beforeConfig, data));
+
+      if (!data.feasible) {
+        return;
+      }
+
+      if (typeof data.config?.power === 'number') {
+        setPower(data.config.power);
+      }
+      if (typeof data.config?.spacing === 'number') {
+        setSpacing(data.config.spacing);
+      }
+      if (typeof data.config?.height === 'number') {
+        setHeight(data.config.height);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to optimize setup');
     } finally {
       setLoading(false);
     }
@@ -113,11 +287,15 @@ const Home: React.FC = () => {
 
   const handleCalculate = async () => {
     if (excelFile) {
+      setOptimizationReport(null);
+      setOptimizationLensResults(null);
       await calculateExcel(excelFile);
       return;
     }
 
     setBatchResults(null);
+    setOptimizationReport(null);
+    setOptimizationLensResults(null);
     await calculate();
   };
 
@@ -146,9 +324,6 @@ const Home: React.FC = () => {
             <GeometryPanel />
             <ArrangementPanel />
             <LuminairePanel />
-            <FormulaLdtBatchPanel loading={loading} onRun={calculateFormulaLdtBatch} />
-            <BatchExcelPanel file={excelFile} onFileChange={handleExcelFileChange} />
-
             <button
               onClick={handleCalculate}
               disabled={loading}
@@ -168,13 +343,21 @@ const Home: React.FC = () => {
                 {loading ? 'Calculating...' : excelFile ? 'Calculate Excel' : 'Calculate'}
               </div>
             </button>
+            <AutoOptimizePanel loading={loading} onRunSimple={optimizeSimple} onRunAdvanced={optimizeAdvanced} />
+            <BatchExcelPanel file={excelFile} onFileChange={handleExcelFileChange} />
           </section>
 
           {/* Center: Visualization */}
           <section className="lg:col-span-6 space-y-4">
             <RoadPlanView />
             <RoadSectionView />
-            {batchResults ? <BatchResultsPanel batch={batchResults} /> : results && <ResultsPanel result={results} />}
+            {batchResults ? <BatchResultsPanel batch={batchResults} /> : results && (
+              <ResultsPanel
+                result={results}
+                optimizationReport={optimizationReport}
+                optimizationLensResults={optimizationLensResults}
+              />
+            )}
           </section>
 
           {/* Right: Results Info */}

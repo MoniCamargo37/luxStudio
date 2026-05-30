@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
-import type { CalculationResult } from '../../types';
+import type { CalculationResult, OptimizationLensResult, OptimizationReport } from '../../types';
 
 interface ResultsPanelProps {
   result: CalculationResult;
   configOverride?: any;
   title?: string;
+  optimizationReport?: OptimizationReport | null;
+  optimizationLensResults?: OptimizationLensResult[] | null;
 }
 
-const ResultsPanel: React.FC<ResultsPanelProps> = ({ result, configOverride, title }) => {
+const ResultsPanel: React.FC<ResultsPanelProps> = ({
+  result,
+  configOverride,
+  title,
+  optimizationReport,
+  optimizationLensResults,
+}) => {
   const config = useConfigStore();
   const [pdfLoading, setPdfLoading] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [rowLoading, setRowLoading] = useState<string | null>(null);
 
   const buildRequestBody = () => ({
     road_width: configOverride?.road_width ?? config.road_width,
@@ -70,6 +79,38 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ result, configOverride, tit
       }
     } finally {
       isPdf ? setPdfLoading(false) : setExcelLoading(false);
+    }
+  };
+
+  const handleDownloadConfigOutput = async (row: OptimizationLensResult, format: 'pdf' | 'excel') => {
+    if (!row.config) return;
+    const key = `${row.optic_family}-${format}`;
+    setRowLoading(key);
+    setPdfError(null);
+
+    try {
+      const response = await fetch(format === 'pdf' ? '/api/report/generate' : '/api/report/excel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(row.config),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.detail || `Server error (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${format === 'pdf' ? 'LUX_Report' : 'LUX_Results'}_${row.model_id.replace(/\s+/g, '_')}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setPdfError(err.message || `Failed to generate ${format === 'pdf' ? 'PDF' : 'Excel'}`);
+    } finally {
+      setRowLoading(null);
     }
   };
 
@@ -150,6 +191,95 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({ result, configOverride, tit
       )}
 
       <div className="p-4">
+        {optimizationReport && (
+          <div className={`mb-3 rounded-lg border px-3 py-2 ${
+            optimizationReport.feasible
+              ? 'bg-emerald-50/80 border-emerald-200'
+              : 'bg-amber-50/90 border-amber-200'
+          }`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`text-xs font-semibold ${
+                optimizationReport.feasible ? 'text-emerald-800' : 'text-amber-900'
+              }`}>
+                {optimizationReport.feasible ? 'Optimized' : 'Not feasible'}
+              </span>
+
+              {optimizationReport.changes.map(change => (
+                <span
+                  key={change.label}
+                  className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2.5 py-1 text-xs shadow-sm"
+                >
+                  <span className="font-medium text-slate-500">{change.label}</span>
+                  <span className="font-semibold text-slate-800">{change.before}</span>
+                  <span className="text-slate-300">to</span>
+                  <span className="font-semibold text-slate-900">{change.after}</span>
+                </span>
+              ))}
+
+              {!optimizationReport.feasible && (
+                <span className="text-xs text-amber-800 min-w-0 flex-1">
+                  {optimizationReport.message}
+                </span>
+              )}
+
+            </div>
+
+            {optimizationLensResults && optimizationLensResults.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {optimizationLensResults.map(row => (
+                  <div
+                    key={row.model_id}
+                    className="flex flex-wrap items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2.5 py-1.5"
+                  >
+                    <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${
+                      row.feasible ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'
+                    }`}>
+                      {row.optic_family}
+                    </span>
+
+                    {row.feasible ? (
+                      row.changes.map(change => (
+                        <span
+                          key={`${row.model_id}-${change.label}`}
+                          className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px]"
+                        >
+                          <span className="font-medium text-slate-500">{change.label}</span>
+                          <span className="font-semibold text-slate-800">{change.before}</span>
+                          <span className="text-slate-300">to</span>
+                          <span className="font-semibold text-slate-900">{change.after}</span>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="min-w-0 flex-1 text-[11px] text-red-700">{row.message}</span>
+                    )}
+
+                    {row.feasible && (
+                      <div className="ml-auto flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadConfigOutput(row, 'pdf')}
+                          disabled={rowLoading !== null}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {rowLoading === `${row.optic_family}-pdf` ? '...' : 'PDF'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadConfigOutput(row, 'excel')}
+                          disabled={rowLoading !== null}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {rowLoading === `${row.optic_family}-excel` ? '...' : 'Excel'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {result.criteria.map(c => (
             <div key={c.name} className={`rounded-lg p-3 border

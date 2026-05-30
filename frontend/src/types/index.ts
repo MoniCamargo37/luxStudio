@@ -46,9 +46,6 @@ export interface BatchCalculationItem {
   row: number;
   config?: any;
   result?: CalculationResult;
-  real_result?: CalculationResult;
-  comparison?: Record<string, number | null>;
-  source?: string;
   error?: string;
 }
 
@@ -56,6 +53,50 @@ export interface BatchCalculationResponse {
   filename: string;
   count: number;
   items: BatchCalculationItem[];
+}
+
+export interface OptimizationResponse {
+  feasible: boolean;
+  message: string;
+  objective: string;
+  fixed_parameters: string[];
+  checked: number;
+  config?: any;
+  result?: CalculationResult;
+}
+
+export interface AdvancedOptimizationVariables {
+  power: boolean;
+  spacing: boolean;
+  height: boolean;
+  optic_family: boolean;
+}
+
+export type AdvancedOptimizationObjective = 'technical_limits' | 'min_power' | 'max_spacing';
+
+export interface OptimizationChange {
+  label: string;
+  before: string;
+  after: string;
+  delta?: string;
+}
+
+export interface OptimizationReport {
+  feasible: boolean;
+  message: string;
+  objective: string;
+  checked: number;
+  changes: OptimizationChange[];
+}
+
+export interface OptimizationLensResult {
+  model_id: string;
+  optic_family: string;
+  feasible: boolean;
+  message?: string;
+  config?: any;
+  result?: CalculationResult;
+  changes: OptimizationChange[];
 }
 
 export type ArrangementType = 'Lineal' | 'Bilateral' | 'Central Doble' | 'En Isleta';

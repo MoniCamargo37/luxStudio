@@ -61,11 +61,31 @@ Luminaire
 8. En calculo manual con DB, el motor calcula con `flux_scale = target_flux / reference_flux`.
 9. Si no hay suficientes puntos para interpolar en DB, se usa la eficiencia/curva de potencia del LDT de referencia como fallback.
 
-### Comparacion formula vs LDT real
-- El boton de prueba calcula variantes registradas en DB para la misma familia y optica.
-- El resultado de formula usa el LDT base escalado.
-- El resultado real usa el LDT fisico de cada variante con escala 1.0.
-- La tabla muestra desviaciones entre formula y real.
+### Optimizacion automatica v1
+- La primera version del optimizador es intencionadamente simple.
+- Objetivo: encontrar la potencia minima de luminaria que cumple todos los criterios activos de EN 13201.
+- Variable optimizada: `power`.
+- Parametros fijos: geometria de carretera, aceras, carriles, pavimento, clase luminica, factor de mantenimiento, disposicion, spacing, altura, brazo, pole offset, tilt, fabricante, tipo, optica y CCT.
+- El backend busca una solucion entre 1 W y 500 W con busqueda acotada y biseccion, refinando a 0.1 W sin barrer todas las potencias.
+- Si no puede cumplir cambiando solo la potencia, devuelve una respuesta no factible con los criterios que siguen fallando.
+- El optimizador v1 solo se aplica a luminarias de catalogo DB, porque usa las formulas de potencia/CCT existentes.
+- Si el usuario carga un LDT externo temporal, ese LDT se calcula exactamente y no se optimiza por potencia en esta version.
+- Decision de diseno: empezar por `power` como criterio inicial porque es el parametro mas directo para bajar sobrecumplimientos de iluminancia/luminancia sin alterar la carretera ni la instalacion.
+
+### Optimizacion avanzada v1
+- Endpoint: `POST /api/optimize/advanced`.
+- El usuario puede elegir prioridad:
+  - `Closest to limits`: scoring tecnico que busca valores cercanos a los limites normativos sin dejar de cumplir.
+  - `Lowest power`: minimizar potencia de luminaria.
+  - `Maximum spacing`: maximizar interdistancia entre postes.
+- La carretera no se optimiza: anchura, carriles, aceras, pavimento, clase luminica y mantenimiento permanecen fijos.
+- La potencia queda siempre libre en esta primera version avanzada.
+- El usuario puede desbloquear `spacing`, `height` y `optic_family`; si no se desbloquean, se mantienen fijos.
+- Para cada combinacion permitida de `spacing` y `height`, el backend calcula la potencia minima mediante la busqueda por biseccion ya usada en el modo simple.
+- Se elige la solucion compliant segun la prioridad elegida; el scoring tecnico penaliza el margen sobrante en criterios de minimo (`Lavg`, `Uo`, `Ul`, `SR`) y de maximo (`TI`).
+- Si se desbloquea `optic_family`, el frontend permite seleccionar una o varias lentes disponibles para el fabricante y modelo actual, y el backend devuelve una tabla con una fila optimizada por lente.
+- Cada fila optimizada por lente conserva su propia configuracion y puede descargar PDF o Excel desde la tabla.
+- Los LDT externos temporales no se optimizan en avanzado porque se calculan exactamente y no deben pasar por formulas de DB.
 
 ### Admin
 - `POST /api/admin/parse-ldt`: valida un `.ldt` y devuelve metadatos para revisar.

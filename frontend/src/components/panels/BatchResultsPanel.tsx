@@ -14,29 +14,11 @@ const metricText = (item: BatchCalculationItem) => {
   return `Lavg ${result.Lavg?.toFixed(2) ?? '-'} / Uo ${result.Uo?.toFixed(3) ?? '-'}`;
 };
 
-const deviationText = (item: BatchCalculationItem) => {
-  const comparison = item.comparison;
-  if (!comparison) return '-';
-  const keys = item.result?.mode === 'P' ? ['Eavg', 'Emin'] : ['Lavg', 'Uo', 'Ul', 'TI', 'SR'];
-  return keys
-    .map(key => {
-      const value = comparison[`${key}_deviation_pct`];
-      return `${key} ${typeof value === 'number' ? `${value >= 0 ? '+' : ''}${value.toFixed(1)}%` : '-'}`;
-    })
-    .join(' / ');
-};
-
-const maxDeviationText = (item: BatchCalculationItem) => {
-  const value = item.comparison?.max_abs_deviation_pct;
-  return typeof value === 'number' ? `${value.toFixed(1)}%` : '-';
-};
-
 const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pass' | 'fail'>('all');
   const [luminaireFilter, setLuminaireFilter] = useState('all');
   const successful = batch.items.filter(item => item.result && item.config);
-  const isFormulaComparison = successful.some(item => item.source === 'formula_vs_real_ldt' && item.real_result);
   const failed = batch.items.filter(item => item.error);
   const passCount = successful.filter(item => item.result?.compliant).length;
   const failCount = successful.length - passCount;
@@ -94,7 +76,7 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-700 text-sm">{isFormulaComparison ? 'LDT formula comparison' : 'Excel results'}</h3>
+          <h3 className="font-semibold text-slate-700 text-sm">Batch results</h3>
           <p className="text-xs text-slate-400 mt-0.5">{batch.filename}</p>
         </div>
         <span className="text-xs text-slate-500">{successful.length} ok / {failed.length} errors</span>
@@ -151,14 +133,7 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
               <th className="text-left font-semibold px-3 py-2">Model</th>
               <th className="text-left font-semibold px-3 py-2">Setup</th>
               <th className="text-left font-semibold px-3 py-2">Luminaire</th>
-              <th className="text-left font-semibold px-3 py-2">{isFormulaComparison ? 'Formula result' : 'Result'}</th>
-              {isFormulaComparison && (
-                <>
-                  <th className="text-left font-semibold px-3 py-2">Real LDT result</th>
-                  <th className="text-left font-semibold px-3 py-2">Deviation</th>
-                  <th className="text-left font-semibold px-3 py-2">Max dev.</th>
-                </>
-              )}
+              <th className="text-left font-semibold px-3 py-2">Result</th>
               <th className="text-left font-semibold px-3 py-2">Status</th>
               <th className="text-right font-semibold px-3 py-2">Outputs</th>
             </tr>
@@ -172,18 +147,9 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
                 </td>
                 <td className="px-3 py-2 text-slate-500">{item.result?.luminaire.luminaire_name}</td>
                 <td className="px-3 py-2 text-slate-500">{metricText(item)}</td>
-                {isFormulaComparison && (
-                  <>
-                    <td className="px-3 py-2 text-slate-500">{metricText({ ...item, result: item.real_result })}</td>
-                    <td className="px-3 py-2 text-slate-500 min-w-52">{deviationText(item)}</td>
-                    <td className="px-3 py-2 font-semibold text-slate-700">{maxDeviationText(item)}</td>
-                  </>
-                )}
                 <td className="px-3 py-2">
                   <span className={`font-bold ${item.result?.compliant ? 'text-green-600' : 'text-red-600'}`}>
-                    {isFormulaComparison
-                      ? `${item.result?.compliant ? 'F PASS' : 'F FAIL'} / ${item.real_result?.compliant ? 'R PASS' : 'R FAIL'}`
-                      : item.result?.compliant ? 'PASS' : 'FAIL'}
+                    {item.result?.compliant ? 'PASS' : 'FAIL'}
                   </span>
                 </td>
                 <td className="px-3 py-2">
@@ -208,7 +174,7 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
             ))}
             {filteredItems.length === 0 && (
               <tr>
-                <td colSpan={isFormulaComparison ? 9 : 6} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
                   No results match the selected filters.
                 </td>
               </tr>
