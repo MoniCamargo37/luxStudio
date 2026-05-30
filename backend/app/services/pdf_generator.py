@@ -346,7 +346,7 @@ def renderRoadSectionSvg(config: CalculationConfig):
 
 
 def _cfg_dict(config: CalculationConfig):
-    effective_overhang = max(config.arm_length - config.pole_offset, 0.0)
+    effective_overhang = config.arm_length - config.pole_offset
     return {
         "arrangement": config.arrangement,
         "h": config.height,

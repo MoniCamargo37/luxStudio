@@ -1,6 +1,7 @@
 import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import type { PavementType, LightingClass } from '../../types';
+import EditableSlider from '../ui/EditableSlider';
 
 const lightingClasses: { value: LightingClass; label: string }[] = [
   { value: 'M1', label: 'M1' }, { value: 'M2', label: 'M2' }, { value: 'M3', label: 'M3' },
@@ -90,18 +91,16 @@ const PavementPanel: React.FC = () => {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            Maintenance factor <span className="text-slate-400">({mf.toFixed(2)})</span>
-          </label>
-          <input type="range" min="0.5" max="1" step="0.01" value={mf}
-            onChange={e => setMf(parseFloat(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-slate-400 mt-0.5">
-            <span>0.50</span><span>1.00</span>
-          </div>
-        </div>
+        <EditableSlider
+          label="Maintenance factor"
+          value={mf}
+          min={0.5}
+          max={1}
+          step={0.01}
+          decimals={2}
+          onChange={setMf}
+          marks={['0.50', '1.00']}
+        />
       </div>
     </div>
   );

@@ -1,10 +1,14 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const location = useLocation();
+  const isAdmin = location.pathname === '/admin';
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-blue-50">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -23,6 +27,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </div>
             </div>
             <nav className="flex items-center gap-4">
+              {isAdmin ? (
+                <Link to="/" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  Studio
+                </Link>
+              ) : (
+                <Link to="/admin" className="text-sm text-slate-500 hover:text-blue-600">
+                  Admin
+                </Link>
+              )}
+              <div className="h-6 w-px bg-slate-200"/>
               <span className="text-sm text-slate-500">CIE 140 / EN 13201</span>
               <div className="h-6 w-px bg-slate-200"/>
               <span className="text-xs text-slate-400">v0.1.0</span>

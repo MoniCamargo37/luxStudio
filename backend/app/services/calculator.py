@@ -1,6 +1,16 @@
+from typing import Optional
+
 from ..salvi_lighting import evaluate, ME_REQ, P_REQ, Photometry
 from ..schemas.models import CalculationConfig, CalculationResult, CriterionResult, LDTInfo
-from .ldt_loader import get_ldt_by_id, get_photometry
+from .ldt_loader import get_all_ldts, get_ldt_by_id, get_photometry
+
+POWER_LAW_EXPONENT = 0.832
+
+
+def _power_law_flux(ref_power: float, ref_flux: float, target_power: float) -> float:
+    if ref_power <= 0 or target_power <= 0:
+        return ref_flux
+    return ref_flux * (target_power / ref_power) ** POWER_LAW_EXPONENT
 
 
 def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult:
@@ -12,7 +22,24 @@ def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult
     if ldt_info is None:
         raise ValueError(f"LDT metadata not found: {ldt_id}")
 
-    return run_calculation_with_photometry(config, photometry, ldt_info, flux_scale=1.0)
+    if ldt_id.startswith("temp-"):
+        exact_config = config.model_copy(update={
+            "power": float(photometry.power),
+            "cct": int(ldt_info.get("cct", config.cct)),
+            "optic_family": ldt_info.get("optic_family", config.optic_family),
+            "manufacturer": ldt_info.get("manufacturer", config.manufacturer),
+            "model_family": ldt_info.get("model_family", config.model_family),
+        })
+        target_info = dict(ldt_info)
+        target_info["power"] = float(photometry.power)
+        target_info["cct"] = int(ldt_info.get("cct", exact_config.cct))
+        target_info["flux"] = float(photometry.flux)
+        target_info["efficiency"] = round(photometry.eff, 1)
+        return run_calculation_with_photometry(exact_config, photometry, target_info, flux_scale=1.0)
+
+    target_info = _target_luminaire_info(config, photometry, ldt_info)
+    flux_scale = target_info["flux"] / photometry.flux if photometry.flux else 1.0
+    return run_calculation_with_photometry(config, photometry, target_info, flux_scale=flux_scale)
 
 
 def run_calculation_with_photometry(
@@ -55,7 +82,7 @@ def run_calculation_with_photometry(
 
 
 def _config_to_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
-    effective_overhang = max(config.arm_length - config.pole_offset, 0.0)
+    effective_overhang = config.arm_length - config.pole_offset
     return {
         "arrangement": config.arrangement,
         "h": config.height,
@@ -66,6 +93,87 @@ def _config_to_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
         "mf": config.mf,
         "class": config.lighting_class,
     }
+
+
+def _target_luminaire_info(config: CalculationConfig, photometry: Photometry, reference_info: dict) -> dict:
+    target = dict(reference_info)
+
+    if abs(config.power - photometry.power) / max(photometry.power, 0.1) < 0.01:
+        target["power"] = float(config.power)
+        target["cct"] = int(config.cct)
+        target["flux"] = float(photometry.flux)
+        target["efficiency"] = round(photometry.eff, 1)
+        return target
+
+    target_flux = _estimate_flux_for_config(config, reference_info)
+    if target_flux is None:
+        reference_efficiency = reference_info.get("efficiency") or getattr(photometry, "eff", None)
+        if reference_efficiency:
+            target_flux = float(config.power) * float(reference_efficiency)
+        else:
+            target_flux = _power_law_flux(photometry.power, photometry.flux, float(config.power))
+
+    target["power"] = float(config.power)
+    target["cct"] = int(config.cct)
+    target["flux"] = float(target_flux)
+    target["efficiency"] = round(float(target_flux) / float(config.power), 1) if config.power else 0
+    return target
+
+
+def _estimate_flux_for_config(config: CalculationConfig, reference_info: dict) -> Optional[float]:
+    candidates = [
+        ldt for ldt in get_all_ldts()
+        if ldt.get("manufacturer", "Unknown") == reference_info.get("manufacturer", "Unknown")
+        and ldt.get("model_family", "UNKNOWN") == reference_info.get("model_family", "UNKNOWN")
+        and ldt.get("optic_family") == reference_info.get("optic_family")
+    ]
+    if not candidates:
+        return None
+
+    cct_points = []
+    for cct in sorted({int(item.get("cct", config.cct)) for item in candidates}):
+        power_points = sorted(
+            (
+                (float(item["power"]), float(item["flux"]))
+                for item in candidates
+                if int(item.get("cct", config.cct)) == cct and float(item.get("power", 0)) > 0
+            ),
+            key=lambda point: point[0],
+        )
+        if len(power_points) == 1 and abs(power_points[0][0] - config.power) > 1e-9:
+            flux_at_power = _power_law_flux(power_points[0][0], power_points[0][1], config.power)
+        else:
+            flux_at_power = _interpolate(config.power, power_points)
+        if flux_at_power is not None:
+            cct_points.append((float(cct), flux_at_power))
+
+    return _interpolate(config.cct, cct_points)
+
+
+def _interpolate(x: float, points: list[tuple[float, float]]) -> Optional[float]:
+    if not points:
+        return None
+    if len(points) == 1:
+        return points[0][1]
+
+    points = sorted(points, key=lambda point: point[0])
+    if x <= points[0][0]:
+        return _linear_between(x, points[0], points[1])
+    if x >= points[-1][0]:
+        return _linear_between(x, points[-2], points[-1])
+
+    for left, right in zip(points, points[1:]):
+        if left[0] <= x <= right[0]:
+            return _linear_between(x, left, right)
+    return points[-1][1]
+
+
+def _linear_between(x: float, left: tuple[float, float], right: tuple[float, float]) -> float:
+    x1, y1 = left
+    x2, y2 = right
+    if abs(x2 - x1) < 1e-9:
+        return y1
+    return y1 + (y2 - y1) * ((float(x) - x1) / (x2 - x1))
 
 
 def _build_criteria(result: dict) -> list[CriterionResult]:

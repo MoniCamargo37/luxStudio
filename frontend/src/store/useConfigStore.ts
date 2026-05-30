@@ -46,7 +46,9 @@ export interface ConfigState {
   setTilt: (t: number) => void;
   setOpticFamily: (f: string) => void;
   setPower: (p: number) => void;
-  setSelectedLdt: (ldt: { id: string; manufacturer: string; model_family: string; optic_family: string; power: number; cct: number }) => void;
+  setManufacturer: (m: string) => void;
+  setModelFamily: (m: string) => void;
+  setSelectedLdt: (ldt: { id: string; manufacturer: string; model_family: string; optic_family: string }) => void;
   setLightingClass: (c: ConfigState['lighting_class']) => void;
   setMf: (m: number) => void;
   setPavement: (p: ConfigState['pavement']) => void;
@@ -138,9 +140,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     manufacturer: ldt.manufacturer,
     model_family: ldt.model_family,
     optic_family: ldt.optic_family,
-    power: ldt.power,
-    cct: ldt.cct,
   }),
+  setManufacturer: (m: string) => set({ manufacturer: m }),
+  setModelFamily: (m: string) => set({ model_family: m }),
   setLightingClass: (c: 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6') => set({ lighting_class: c }),
   setMf: (m: number) => set({ mf: m }),
   setPavement: (p: 'R1' | 'R2' | 'R3' | 'R4') => set({ pavement: p }),

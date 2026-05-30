@@ -93,7 +93,10 @@ async def calculate_formula_ldt_batch(config: CalculationConfig):
             variant_flux = float(variant.get("flux", base_flux) or base_flux)
             flux_scale = variant_flux / base_flux if base_flux > 0 else 1.0
             formula_result = run_calculation_with_photometry(variant_config, base_photometry, variant, flux_scale=flux_scale)
-            real_result = run_calculation(variant_config, variant["id"])
+            variant_photometry = get_photometry(variant["id"])
+            if variant_photometry is None:
+                raise ValueError(f"LDT not found: {variant['id']}")
+            real_result = run_calculation_with_photometry(variant_config, variant_photometry, variant, flux_scale=1.0)
             items.append(BatchCalculationItem(
                 model_id=f"{variant.get('model_family', 'LDT')} {variant.get('optic_family', '')} {variant.get('cct', config.cct)}K {variant.get('power', 0):g}W",
                 row=index,

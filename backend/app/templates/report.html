@@ -361,7 +361,7 @@
         <tr><td>Power</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
         <tr><td>Mounting height (1)</td><td class="value">{{ "%.2f"|format(cfg.height) }} m</td></tr>
         <tr><td>Pole offset from road edge</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m</td></tr>
-        <tr><td>Overhang / saliente (2)</td><td class="value">{{ "%.2f"|format(cfg.arm_length - cfg.pole_offset if cfg.arm_length > cfg.pole_offset else 0) }} m</td></tr>
+        <tr><td>Effective overhang / saliente (2)</td><td class="value">{{ "%.2f"|format(cfg.arm_length - cfg.pole_offset) }} m</td></tr>
         <tr><td>Head tilt (3)</td><td class="value">{{ "%.0f"|format(cfg.tilt) }}°</td></tr>
         <tr><td>Bracket length (4)</td><td class="value">{{ "%.2f"|format(cfg.arm_length) }} m</td></tr>
       </table>

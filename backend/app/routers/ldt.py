@@ -1,5 +1,4 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from ..salvi_lighting import parse_ldt
 
 from ..services import ldt_loader
 from ..schemas.models import LDTInfo, LDTFamily
@@ -9,7 +8,7 @@ router = APIRouter()
 
 @router.get("/list", response_model=list[LDTInfo])
 async def list_ldts():
-    """List all available LDT files."""
+    """List all luminaires registered in the database."""
     ldts = ldt_loader.get_all_ldts()
     return [LDTInfo(
         id=ldt["id"],
@@ -62,32 +61,22 @@ async def upload_ldt(
     persist: bool = Form(False),
     manufacturer: str = Form("Custom"),
 ):
-    """Validate an uploaded LDT and optionally add it to the local catalog."""
+    """Upload an external LDT for temporary calculation use only."""
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty LDT file")
+    if persist:
+        raise HTTPException(
+            status_code=400,
+            detail="Use /api/admin/luminaires/upload to save luminaires in the database.",
+        )
 
     try:
-        if persist:
-            target_path = ldt_loader.save_uploaded_ldt(file.filename or "uploaded.ldt", data, manufacturer)
-            parsed = parse_ldt(str(target_path))
-            saved = True
-        else:
-            tmp_path = ldt_loader.LDT_DIR / "__tmp_upload__.ldt"
-            tmp_path.write_bytes(data)
-            parsed = parse_ldt(str(tmp_path))
-            tmp_path.unlink(missing_ok=True)
-            saved = False
+        info = ldt_loader.save_temporary_ldt(file.filename or "external.ldt", data)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid LDT file: {exc}") from exc
 
-    return {
-        "saved": saved,
-        "luminaire_name": parsed.get("lum_name", file.filename),
-        "manufacturer": manufacturer,
-        "power": parsed["lamp_sets"][0]["wattage"],
-        "flux": parsed["lamp_sets"][0]["flux_lm"],
-    }
+    return LDTInfo(**{k: v for k, v in info.items() if k in ("id", "filename", "luminaire_name", "manufacturer", "model_family", "cct", "optic_family", "power", "flux", "efficiency", "LORL", "isym")})
 
 
 @router.get("/{ldt_id}", response_model=LDTInfo)

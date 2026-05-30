@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { useConfigStore } from './store/useConfigStore';
 import MainLayout from './layouts/MainLayout';
 import GeometryPanel from './components/panels/GeometryPanel';
@@ -12,7 +12,9 @@ import ResultsPanel from './components/panels/ResultsPanel';
 import QuickInfoPanel from './components/panels/QuickInfoPanel';
 import RoadPlanView from './components/canvas/RoadPlanView';
 import RoadSectionView from './components/canvas/RoadSectionView';
-import type { BatchCalculationResponse } from './types';
+import LuminaireTable from './components/admin/LuminaireTable';
+import LuminaireForm from './components/admin/LuminaireForm';
+import type { BatchCalculationResponse, LDTInfo } from './types';
 import './App.css';
 
 const buildCalculationRequest = () => {
@@ -185,12 +187,75 @@ const Home: React.FC = () => {
   );
 };
 
+const Admin: React.FC = () => {
+  const [editLum, setEditLum] = useState<LDTInfo | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleEdit = (lum: LDTInfo) => {
+    setEditLum(lum);
+    setShowForm(true);
+  };
+
+  const handleNew = () => {
+    setEditLum(null);
+    setShowForm(true);
+  };
+
+  const handleSaved = () => {
+    setShowForm(false);
+    setEditLum(null);
+    setRefreshKey(k => k + 1);
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditLum(null);
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-800">Luminaire Catalog</h2>
+          <p className="text-slate-500 text-sm mt-1">Manage luminaires in the database</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/"
+            className="px-3 py-1.5 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+          >
+            Back to Studio
+          </Link>
+          {!showForm && (
+            <button
+              onClick={handleNew}
+              className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            >
+              + New Luminaire
+            </button>
+          )}
+        </div>
+      </div>
+
+      {showForm ? (
+        <LuminaireForm editLum={editLum} onSaved={handleSaved} onCancel={handleCancel} />
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <LuminaireTable onEdit={handleEdit} refreshKey={refreshKey} />
+        </div>
+      )}
+    </div>
+  );
+};
+
 function App() {
   return (
     <BrowserRouter>
       <MainLayout>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import type { ArrangementType, LightingClass, PavementType } from '../../types';
+import EditableSlider from '../ui/EditableSlider';
 
 const lightingClasses: LightingClass[] = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'];
 const arrangements: { value: ArrangementType; label: string; icon: string }[] = [
@@ -39,41 +40,38 @@ const GeometryPanel: React.FC = () => {
         </h3>
       </div>
       <div className="p-4 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            Carriageway width <span className="text-slate-400">({road_width.toFixed(1)} m)</span>
-          </label>
-          <input
-            type="range" min="2.5" max="25" step="0.5" value={road_width}
-            onChange={e => setRoadWidth(parseFloat(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-slate-400 mt-0.5">
-            <span>2.5</span><span>25</span>
-          </div>
-        </div>
+        <EditableSlider
+          label="Carriageway width"
+          value={road_width}
+          min={2.5}
+          max={25}
+          step={0.5}
+          unit="m"
+          decimals={1}
+          onChange={setRoadWidth}
+        />
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              Left sidewalk <span className="text-slate-400">({sidewalk_left.toFixed(1)} m)</span>
-            </label>
-            <input
-              type="range" min="0" max="5" step="0.5" value={sidewalk_left}
-              onChange={e => setSidewalkLeft(parseFloat(e.target.value))}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              Right sidewalk <span className="text-slate-400">({sidewalk_right.toFixed(1)} m)</span>
-            </label>
-            <input
-              type="range" min="0" max="5" step="0.5" value={sidewalk_right}
-              onChange={e => setSidewalkRight(parseFloat(e.target.value))}
-              className="w-full"
-            />
-          </div>
+          <EditableSlider
+            label="Left sidewalk"
+            value={sidewalk_left}
+            min={0}
+            max={5}
+            step={0.5}
+            unit="m"
+            decimals={1}
+            onChange={setSidewalkLeft}
+          />
+          <EditableSlider
+            label="Right sidewalk"
+            value={sidewalk_right}
+            min={0}
+            max={5}
+            step={0.5}
+            unit="m"
+            decimals={1}
+            onChange={setSidewalkRight}
+          />
         </div>
 
         <div>
@@ -100,19 +98,17 @@ const GeometryPanel: React.FC = () => {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            Pole offset from road edge <span className="text-slate-400">({pole_offset.toFixed(2)} m)</span>
-          </label>
-          <input
-            type="range" min="0" max="3" step="0.05" value={pole_offset}
-            onChange={e => setPoleOffset(parseFloat(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-slate-400 mt-0.5">
-            <span>0.00</span><span>3.00</span>
-          </div>
-        </div>
+        <EditableSlider
+          label="Pole offset from road edge"
+          value={pole_offset}
+          min={0}
+          max={3}
+          step={0.05}
+          unit="m"
+          decimals={2}
+          onChange={setPoleOffset}
+          marks={['0.00', '3.00']}
+        />
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -135,18 +131,16 @@ const GeometryPanel: React.FC = () => {
               ))}
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              Maintenance <span className="text-slate-400">({mf.toFixed(2)})</span>
-            </label>
-            <input type="range" min="0.5" max="1" step="0.01" value={mf}
-              onChange={e => setMf(parseFloat(e.target.value))}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-0.5">
-              <span>0.50</span><span>1.00</span>
-            </div>
-          </div>
+          <EditableSlider
+            label="Maintenance"
+            value={mf}
+            min={0.5}
+            max={1}
+            step={0.01}
+            decimals={2}
+            onChange={setMf}
+            marks={['0.50', '1.00']}
+          />
         </div>
 
         <div>
@@ -171,18 +165,16 @@ const GeometryPanel: React.FC = () => {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            Spacing <span className="text-slate-400">({spacing.toFixed(1)} m)</span>
-          </label>
-          <input type="range" min="10" max="60" step="1" value={spacing}
-            onChange={e => setSpacing(parseFloat(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-slate-400 mt-0.5">
-            <span>10</span><span>60</span>
-          </div>
-        </div>
+        <EditableSlider
+          label="Spacing"
+          value={spacing}
+          min={10}
+          max={60}
+          step={1}
+          unit="m"
+          decimals={1}
+          onChange={setSpacing}
+        />
 
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">
