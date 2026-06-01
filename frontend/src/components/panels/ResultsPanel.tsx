@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import type { CalculationResult, OptimizationLensResult, OptimizationReport } from '../../types';
+import { useI18n } from '../../i18n';
 
 interface ResultsPanelProps {
   result: CalculationResult;
@@ -18,6 +19,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
   optimizationLensResults,
 }) => {
   const config = useConfigStore();
+  const { t } = useI18n();
   const [pdfLoading, setPdfLoading] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -32,16 +34,29 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
     height: configOverride?.height ?? config.height,
     spacing: configOverride?.spacing ?? config.spacing,
     arm_length: configOverride?.arm_length ?? config.arm_length,
+    armLength: configOverride?.arm_length ?? configOverride?.armLength ?? config.arm_length,
     pole_offset: configOverride?.pole_offset ?? config.pole_offset,
     pole_side: configOverride?.pole_side ?? config.pole_side,
     tilt: configOverride?.tilt ?? config.tilt,
+    armTiltAngle: configOverride?.tilt ?? configOverride?.armTiltAngle ?? config.tilt,
     optic_family: configOverride?.optic_family ?? config.optic_family,
     power: configOverride?.power ?? config.power,
     lighting_class: configOverride?.lighting_class ?? config.lighting_class,
     mf: configOverride?.mf ?? config.mf,
     pavement: configOverride?.pavement ?? config.pavement,
     cct: configOverride?.cct ?? config.cct,
+    cri: configOverride?.cri ?? config.cri,
+    language: config.language,
   });
+
+  const changeLabel = (label: string) => {
+    if (label === 'power') return t('luminaire.power');
+    if (label === 'spacing') return t('geometry.spacing');
+    if (label === 'height') return t('pole.height');
+    if (label === 'arm_length') return t('pole.armLength');
+    if (label === 'tilt') return t('pole.armTilt');
+    return label;
+  };
 
   const handleDownloadOutput = async (format: 'pdf' | 'excel') => {
     const isPdf = format === 'pdf';
@@ -62,7 +77,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
+        throw new Error(errData?.detail || t('errors.server', { status: response.status }));
       }
 
       const blob = await response.blob();
@@ -74,9 +89,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        setPdfError(`${isPdf ? 'PDF' : 'Excel'} generation timed out. Try again or reduce complexity.`);
+        setPdfError(t('results.timeout', { type: isPdf ? 'PDF' : 'Excel' }));
       } else {
-        setPdfError(err.message || `Failed to generate ${isPdf ? 'PDF' : 'Excel'}`);
+        setPdfError(err.message || t('results.failedGenerate', { type: isPdf ? 'PDF' : 'Excel' }));
       }
     } finally {
       isPdf ? setPdfLoading(false) : setExcelLoading(false);
@@ -93,12 +108,12 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
       const response = await fetch(format === 'pdf' ? '/api/report/generate' : '/api/report/excel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(row.config),
+        body: JSON.stringify({ ...row.config, language: config.language }),
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
+        throw new Error(errData?.detail || t('errors.server', { status: response.status }));
       }
 
       const blob = await response.blob();
@@ -109,7 +124,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      setPdfError(err.message || `Failed to generate ${format === 'pdf' ? 'PDF' : 'Excel'}`);
+      setPdfError(err.message || t('results.failedGenerate', { type: format === 'pdf' ? 'PDF' : 'Excel' }));
     } finally {
       setRowLoading(null);
     }
@@ -123,7 +138,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${result.compliant ? 'bg-green-500' : 'bg-red-500'}`}/>
           <h3 className="font-semibold text-slate-700 text-sm">
-            {title ? `${title} - ` : ''}{result.compliant ? 'Compliant' : 'Non-Compliant'}
+            {title ? `${title} - ` : ''}{result.compliant ? t('results.compliant') : t('results.nonCompliant')}
           </h3>
         </div>
         <div className="flex items-center gap-2">
@@ -142,7 +157,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
                 <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
               </svg>
-              Generating…
+              {t('results.generating')}
             </>
           ) : (
             <>
@@ -168,7 +183,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
                 <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
               </svg>
-              Generating...
+              {t('results.generating')}
             </>
           ) : (
             <>
@@ -202,7 +217,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
               <span className={`text-xs font-semibold ${
                 optimizationReport.feasible ? 'text-emerald-800' : 'text-amber-900'
               }`}>
-                {optimizationReport.feasible ? 'Optimized' : 'Not feasible'}
+                {optimizationReport.feasible ? t('results.optimized') : t('results.notFeasible')}
               </span>
 
               {optimizationReport.changes.map(change => (
@@ -210,9 +225,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   key={change.label}
                   className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2.5 py-1 text-xs shadow-sm"
                 >
-                  <span className="font-medium text-slate-500">{change.label}</span>
+                  <span className="font-medium text-slate-500">{changeLabel(change.label)}</span>
                   <span className="font-semibold text-slate-800">{change.before}</span>
-                  <span className="text-slate-300">to</span>
+                  <span className="text-slate-300">{t('results.to')}</span>
                   <span className="font-semibold text-slate-900">{change.after}</span>
                 </span>
               ))}
@@ -244,9 +259,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                           key={`${row.model_id}-${change.label}`}
                           className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px]"
                         >
-                          <span className="font-medium text-slate-500">{change.label}</span>
+                          <span className="font-medium text-slate-500">{changeLabel(change.label)}</span>
                           <span className="font-semibold text-slate-800">{change.before}</span>
-                          <span className="text-slate-300">to</span>
+                          <span className="text-slate-300">{t('results.to')}</span>
                           <span className="font-semibold text-slate-900">{change.after}</span>
                         </span>
                       ))
@@ -288,7 +303,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
               <div className="text-xs text-slate-500 mb-0.5">{c.name}</div>
               <div className="text-lg font-bold tracking-tight">{c.value.toFixed(3)}</div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-slate-400">req: {c.required.toFixed(3)}</span>
+                <span className="text-[10px] text-slate-400">{t('results.required')} {c.required.toFixed(3)}</span>
                 <span className={`text-xs font-bold ${c.passed ? 'text-green-600' : 'text-red-600'}`}>
                   {c.passed ? '✓' : '✗'}
                 </span>
@@ -298,8 +313,8 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
         </div>
 
         <div className="mt-3 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200 pt-3">
-          <span>Luminaire: <strong className="text-slate-700">{result.luminaire.luminaire_name}</strong></span>
-          <span>{result.luminaire.power.toFixed(0)}W / {(result.luminaire.flux / 1000).toFixed(1)}k lm</span>
+          <span>{t('results.luminaire')}: <strong className="text-slate-700">{result.luminaire.luminaire_name}</strong></span>
+          <span>{result.luminaire.power.toFixed(0)}W / {(result.luminaire.flux / 1000).toFixed(1)}k lm / CRI {result.luminaire.cri ?? 70}</span>
         </div>
       </div>
     </div>

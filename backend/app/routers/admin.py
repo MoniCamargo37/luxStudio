@@ -20,6 +20,7 @@ class UpdateLuminaireBody(BaseModel):
     luminaire_name: Optional[str] = None
     power: Optional[float] = None
     cct: Optional[int] = None
+    cri: Optional[int] = None
     flux: Optional[float] = None
     efficiency: Optional[float] = None
     LORL: Optional[float] = None
@@ -36,6 +37,7 @@ def _lum_to_info(lum: Luminaire) -> LDTInfo:
         manufacturer=lum.manufacturer.name if lum.manufacturer else "Unknown",
         model_family=lum.type,
         cct=lum.cct,
+        cri=getattr(lum, "cri", 70) or 70,
         optic_family=lum.optic_family,
         power=lum.power,
         flux=lum.flux,
@@ -67,6 +69,7 @@ async def upload_luminaire(
     luminaire_name: str = Form(...),
     power: float = Form(...),
     cct: int = Form(...),
+    cri: int = Form(70),
     flux: float = Form(...),
     efficiency: float = Form(...),
     LORL: float = Form(...),
@@ -91,6 +94,7 @@ async def upload_luminaire(
             "luminaire_name": luminaire_name,
             "power": power,
             "cct": cct,
+            "cri": cri,
             "flux": flux,
             "efficiency": efficiency,
             "LORL": LORL,

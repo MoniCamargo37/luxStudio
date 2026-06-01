@@ -1,8 +1,10 @@
 import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import EditableSlider from '../ui/EditableSlider';
+import { useI18n } from '../../i18n';
 
 const ArrangementPanel: React.FC = () => {
+  const { t } = useI18n();
   const {
     height, setHeight,
     arm_length, setArmLength,
@@ -16,12 +18,12 @@ const ArrangementPanel: React.FC = () => {
           <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
           </svg>
-          Pole
+          {t('pole.title')}
         </h3>
       </div>
       <div className="p-4 space-y-4">
         <EditableSlider
-          label="Pole height"
+          label={t('pole.height')}
           value={height}
           min={4}
           max={16}
@@ -33,7 +35,7 @@ const ArrangementPanel: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-3">
           <EditableSlider
-            label="Bracket arm"
+            label={t('pole.armLength')}
             value={arm_length}
             min={0}
             max={4}
@@ -43,7 +45,7 @@ const ArrangementPanel: React.FC = () => {
             onChange={setArmLength}
           />
           <EditableSlider
-            label="Head tilt"
+            label={t('pole.armTilt')}
             value={tilt}
             min={-25}
             max={25}

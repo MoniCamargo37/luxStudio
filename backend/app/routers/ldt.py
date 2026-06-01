@@ -17,6 +17,7 @@ async def list_ldts():
         manufacturer=ldt.get("manufacturer", "Unknown"),
         model_family=ldt.get("model_family", "UNKNOWN"),
         cct=ldt.get("cct", 4000),
+        cri=ldt.get("cri", 70),
         optic_family=ldt["optic_family"],
         power=ldt["power"],
         flux=ldt["flux"],
@@ -44,6 +45,7 @@ async def list_catalog():
             "manufacturer": ldt.get("manufacturer", "Unknown"),
             "model_family": ldt.get("model_family", "UNKNOWN"),
             "cct": ldt.get("cct", 4000),
+            "cri": ldt.get("cri", 70),
             "optic_family": ldt["optic_family"],
             "power": ldt["power"],
             "flux": ldt["flux"],
@@ -76,7 +78,7 @@ async def upload_ldt(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid LDT file: {exc}") from exc
 
-    return LDTInfo(**{k: v for k, v in info.items() if k in ("id", "filename", "luminaire_name", "manufacturer", "model_family", "cct", "optic_family", "power", "flux", "efficiency", "LORL", "isym")})
+    return LDTInfo(**{k: v for k, v in info.items() if k in ("id", "filename", "luminaire_name", "manufacturer", "model_family", "cct", "cri", "optic_family", "power", "flux", "efficiency", "LORL", "isym")})
 
 
 @router.get("/{ldt_id}", response_model=LDTInfo)
@@ -85,7 +87,7 @@ async def get_ldt(ldt_id: str):
     info = ldt_loader.get_ldt_by_id(ldt_id)
     if info is None:
         raise HTTPException(status_code=404, detail="LDT not found")
-    return LDTInfo(**{k: v for k, v in info.items() if k in ("id", "filename", "luminaire_name", "manufacturer", "model_family", "cct", "optic_family", "power", "flux", "efficiency", "LORL", "isym")})
+    return LDTInfo(**{k: v for k, v in info.items() if k in ("id", "filename", "luminaire_name", "manufacturer", "model_family", "cct", "cri", "optic_family", "power", "flux", "efficiency", "LORL", "isym")})
 
 
 @router.get("/{ldt_id}/curve")

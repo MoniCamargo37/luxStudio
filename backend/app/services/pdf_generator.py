@@ -11,6 +11,8 @@ from ..salvi_lighting import build_luminaires, calc_luminance, calc_road
 
 from .ldt_loader import get_ldt_by_id, get_photometry
 from ..schemas.models import CalculationConfig, CalculationResult
+from .geometry import arm_projection, effective_overhang, luminaire_mounting_height
+from .i18n import normalize_language, translator
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 
@@ -78,8 +80,9 @@ def _closed_plane(plane_a, plane_b):
     return forward + backward
 
 
-def renderPolarPhotometrySvg(photometry):
+def renderPolarPhotometrySvg(photometry, t=None):
     """Render a technical polar photometry SVG with gamma 0 at the bottom."""
+    t = t or translator("en")
     lum_name = _safe(photometry.get("luminaire_name", "Luminaire"))
     c0 = _interp_plane(photometry, 0)
     c90 = _interp_plane(photometry, 90)
@@ -135,11 +138,11 @@ def renderPolarPhotometrySvg(photometry):
         )
 
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img" aria-label="Polar photometry diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img" aria-label="{_safe(t('svg.polar_aria'))}">
   <rect x="0" y="0" width="{width}" height="{height}" fill="white"/>
   <text x="28" y="30" font-size="15" font-weight="800" fill="#0f172a">I (cd/klm) - {lum_name}</text>
-  <text x="28" y="50" font-size="10.5" fill="#64748b">Photometric distribution, normalized per 1000 lm</text>
-  <text x="28" y="68" font-size="10.5" fill="#64748b">Radial scale: {', '.join(str(t) for t in radial_ticks[:4])} cd/klm</text>
+  <text x="28" y="50" font-size="10.5" fill="#64748b">{_safe(t('svg.photometric_distribution'))}</text>
+  <text x="28" y="68" font-size="10.5" fill="#64748b">{_safe(t('svg.radial_scale'))}: {', '.join(str(tick) for tick in radial_ticks[:4])} cd/klm</text>
   <g>{''.join(grid)}</g>
   <path d="{path_for(red_curve)}" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linejoin="round"/>
   <path d="{path_for(blue_curve)}" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linejoin="round"/>
@@ -156,8 +159,9 @@ def renderPolarPhotometrySvg(photometry):
 """
 
 
-def renderRoadPlanSvg(config: CalculationConfig):
+def renderRoadPlanSvg(config: CalculationConfig, t=None):
     """Render a proportional top view of the road, lanes, sidewalks and luminaires."""
+    t = t or translator(getattr(config, "language", "en"))
     total_w = config.road_width + config.sidewalk_left + config.sidewalk_right
     width, height = 900, 360
     margin_x, road_x = 88, 88
@@ -174,14 +178,14 @@ def renderRoadPlanSvg(config: CalculationConfig):
         return top + m * scale_y
 
     dims = []
-    dims.append(_dimension(road_x, top + section_h + 28, road_x + usable_w, top + section_h + 28, f"Calculation length / spacing = {config.spacing:.1f} m"))
-    dims.append(_dimension(road_x + usable_w + 28, road_y, road_x + usable_w + 28, road_y + road_h, f"Roadway = {config.road_width:.1f} m", vertical=True))
+    dims.append(_dimension(road_x, top + section_h + 28, road_x + usable_w, top + section_h + 28, t("svg.calculation_spacing", value=f"{config.spacing:.1f}")))
+    dims.append(_dimension(road_x + usable_w + 28, road_y, road_x + usable_w + 28, road_y + road_h, t("svg.roadway_eq", value=f"{config.road_width:.1f}"), vertical=True))
     side_top = config.pole_side != "right"
     if config.pole_offset > 0:
         if side_top:
-            dims.append(_dimension(road_x - 70, road_y - config.pole_offset * scale_y, road_x - 70, road_y, f"Pole offset = {config.pole_offset:.2f} m", vertical=True))
+            dims.append(_dimension(road_x - 70, road_y - config.pole_offset * scale_y, road_x - 70, road_y, t("svg.pole_offset_eq", value=f"{config.pole_offset:.2f}"), vertical=True))
         else:
-            dims.append(_dimension(road_x - 70, road_y + road_h, road_x - 70, road_y + road_h + config.pole_offset * scale_y, f"Pole offset = {config.pole_offset:.2f} m", vertical=True))
+            dims.append(_dimension(road_x - 70, road_y + road_h, road_x - 70, road_y + road_h + config.pole_offset * scale_y, t("svg.pole_offset_eq", value=f"{config.pole_offset:.2f}"), vertical=True))
     if config.sidewalk_left > 0:
         dims.append(_dimension(road_x - 26, top, road_x - 26, road_y, f"{config.sidewalk_left:.1f} m", vertical=True))
     if config.sidewalk_right > 0:
@@ -205,23 +209,23 @@ def renderRoadPlanSvg(config: CalculationConfig):
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">
   <rect width="{width}" height="{height}" fill="white"/>
-  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Street plan view</text>
-  <text x="28" y="53" font-size="11" fill="#64748b">Calculation field, carriageway, pedestrian areas and luminaire positions</text>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">{_safe(t('svg.plan_title'))}</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">{_safe(t('svg.plan_subtitle'))}</text>
   <rect x="{road_x}" y="{top:.1f}" width="{usable_w}" height="{section_h:.1f}" fill="#d7dee8"/>
   {f'<rect x="{road_x}" y="{top:.1f}" width="{usable_w}" height="{config.sidewalk_left * scale_y:.1f}" fill="#e8edf3"/>' if config.sidewalk_left > 0 else ''}
   <rect x="{road_x}" y="{road_y:.1f}" width="{usable_w}" height="{road_h:.1f}" fill="#59616c"/>
   {f'<rect x="{road_x}" y="{right_sidewalk_y:.1f}" width="{usable_w}" height="{config.sidewalk_right * scale_y:.1f}" fill="#e8edf3"/>' if config.sidewalk_right > 0 else ''}
   {''.join(lane_lines)}
-  <text x="{road_x + 10}" y="{y_from_m(config.sidewalk_left / 2) + 4:.1f}" font-size="12" font-weight="700" fill="#475569">Sidewalk / Pedestrian area 1</text>
-  <text x="{road_x + 10}" y="{road_y + road_h / 2 + 4:.1f}" font-size="13" font-weight="800" fill="white">Roadway</text>
-  <text x="{road_x + 10}" y="{right_sidewalk_y + max(config.sidewalk_right, 0.2) * scale_y / 2 + 4:.1f}" font-size="12" font-weight="700" fill="#475569">Sidewalk / Pedestrian area 2</text>
+  <text x="{road_x + 10}" y="{y_from_m(config.sidewalk_left / 2) + 4:.1f}" font-size="12" font-weight="700" fill="#475569">{_safe(t('report.sidewalk_area_1'))}</text>
+  <text x="{road_x + 10}" y="{road_y + road_h / 2 + 4:.1f}" font-size="13" font-weight="800" fill="white">{_safe(t('report.roadway'))}</text>
+  <text x="{road_x + 10}" y="{right_sidewalk_y + max(config.sidewalk_right, 0.2) * scale_y / 2 + 4:.1f}" font-size="12" font-weight="700" fill="#475569">{_safe(t('report.sidewalk_area_2'))}</text>
   {''.join(arrows)}
   {''.join(luminaires)}
   <line x1="{road_x}" y1="{top + section_h + 8:.1f}" x2="{road_x}" y2="{top + section_h + 21:.1f}" stroke="#111827" stroke-width="1"/>
   <line x1="{road_x + usable_w}" y1="{top + section_h + 8:.1f}" x2="{road_x + usable_w}" y2="{top + section_h + 21:.1f}" stroke="#111827" stroke-width="1"/>
   <text x="{road_x:.1f}" y="{top + section_h + 42:.1f}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">0.00</text>
   <text x="{road_x + usable_w:.1f}" y="{top + section_h + 42:.1f}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">{config.spacing:.2f} m</text>
-  <text x="{road_x + usable_w - 6:.1f}" y="{mast_label_y:.1f}" text-anchor="end" font-size="11" font-weight="700" fill="#1e40af">mast positions / spacing - {'sidewalk 1' if side_top else 'sidewalk 2'}</text>
+  <text x="{road_x + usable_w - 6:.1f}" y="{mast_label_y:.1f}" text-anchor="end" font-size="11" font-weight="700" fill="#1e40af">{_safe(t('svg.mast_positions', sidewalk=t('svg.sidewalk_1') if side_top else t('svg.sidewalk_2')))}</text>
   {''.join(dims)}
 </svg>
 """
@@ -230,7 +234,8 @@ def renderRoadPlanSvg(config: CalculationConfig):
 def _plan_luminaires(config, road_x, road_y, usable_w, road_h, scale_x, scale_y):
     y_pole_left = road_y - config.pole_offset * scale_y
     y_pole_right = road_y + road_h + config.pole_offset * scale_y
-    overhang = max(config.arm_length, 0) * scale_y
+    horizontal_arm, _ = arm_projection(config)
+    overhang = max(horizontal_arm, 0) * scale_y
     xs = [road_x, road_x + usable_w]
     items = []
 
@@ -292,8 +297,9 @@ def _dimension(x1, y1, x2, y2, label, vertical=False):
     )
 
 
-def renderRoadSectionSvg(config: CalculationConfig):
+def renderRoadSectionSvg(config: CalculationConfig, t=None):
     """Render a technical transverse section with dimensions, arm, tilt and road proportions."""
+    t = t or translator(getattr(config, "language", "en"))
     width, height = 900, 440
     ground_y = 292
     total_w = config.road_width + config.sidewalk_left + config.sidewalk_right
@@ -306,11 +312,14 @@ def renderRoadSectionSvg(config: CalculationConfig):
     pole_x = road_edge_x - side_sign * config.pole_offset * scale_x
     pole_top = 94
     pole_scale = (ground_y - pole_top) / max(config.height, 1)
-    arm_px = side_sign * config.arm_length * scale_x
+    horizontal_arm, vertical_arm = arm_projection(config)
+    arm_px = side_sign * horizontal_arm * scale_x
+    arm_rise_px = vertical_arm * pole_scale
     head_x = pole_x + arm_px
+    head_y = pole_top - arm_rise_px
     tilt_rad = math.radians(config.tilt)
     head_len, head_h = 66, 18
-    head_angle = -config.tilt
+    head_angle = -config.tilt if side_sign == 1 else 180 + config.tilt
     label_x = min(max(head_x + 118, 560), 810)
 
     lanes = []
@@ -319,66 +328,66 @@ def renderRoadSectionSvg(config: CalculationConfig):
         lanes.append(f'<line x1="{x:.1f}" y1="{ground_y + 8}" x2="{x:.1f}" y2="{ground_y + 40}" stroke="white" stroke-width="2" stroke-dasharray="7 6"/>')
 
     dims = [
-        _dimension(road_left, ground_y + 76, road_left + road_w, ground_y + 76, f"Roadway = {config.road_width:.1f} m"),
-        _dimension(left, ground_y + 104, left + total_w * scale_x, ground_y + 104, f"Total width = {total_w:.1f} m"),
-        _dimension(pole_x - 52, pole_top, pole_x - 52, ground_y, f"Mounting height = {config.height:.1f} m", vertical=True),
+        _dimension(road_left, ground_y + 76, road_left + road_w, ground_y + 76, t("svg.roadway_eq", value=f"{config.road_width:.1f}")),
+        _dimension(left, ground_y + 104, left + total_w * scale_x, ground_y + 104, t("svg.total_width_eq", value=f"{total_w:.1f}")),
+        _dimension(pole_x - 52, pole_top, pole_x - 52, ground_y, t("svg.pole_height_eq", value=f"{config.height:.1f}"), vertical=True),
     ]
     if config.arm_length > 0:
-        dims.append(_dimension(pole_x, pole_top - 34, head_x, pole_top - 34, f"Arm = {config.arm_length:.1f} m"))
+        dims.append(_dimension(pole_x, pole_top - 34, head_x, pole_top - 34, t("svg.arm_projection_eq", value=f"{horizontal_arm:.1f}")))
     if config.pole_offset > 0:
-        dims.append(_dimension(pole_x, ground_y - 26, road_edge_x, ground_y - 26, f"Pole offset = {config.pole_offset:.2f} m"))
+        dims.append(_dimension(pole_x, ground_y - 26, road_edge_x, ground_y - 26, t("svg.pole_offset_eq", value=f"{config.pole_offset:.2f}")))
 
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">
   <rect width="{width}" height="{height}" fill="white"/>
-  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">Transverse section</text>
-  <text x="28" y="53" font-size="11" fill="#64748b">Pole height, bracket arm, luminaire tilt and roadway section</text>
+  <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">{_safe(t('svg.section_title'))}</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">{_safe(t('svg.section_subtitle'))}</text>
   <rect x="{left:.1f}" y="{ground_y}" width="{config.sidewalk_left * scale_x:.1f}" height="48" fill="#d8dee7"/>
   <rect x="{road_left:.1f}" y="{ground_y}" width="{road_w:.1f}" height="48" fill="#59616c"/>
   <rect x="{road_left + road_w:.1f}" y="{ground_y}" width="{config.sidewalk_right * scale_x:.1f}" height="48" fill="#d8dee7"/>
   {''.join(lanes)}
   <line x1="{pole_x:.1f}" y1="{ground_y}" x2="{pole_x:.1f}" y2="{pole_top:.1f}" stroke="#263241" stroke-width="9" stroke-linecap="square"/>
   <rect x="{pole_x - 16:.1f}" y="{ground_y - 7}" width="32" height="10" fill="#263241"/>
-  <line x1="{pole_x:.1f}" y1="{pole_top:.1f}" x2="{head_x:.1f}" y2="{pole_top:.1f}" stroke="#263241" stroke-width="6" stroke-linecap="round"/>
-  <g transform="translate({head_x:.1f} {pole_top:.1f}) scale({side_sign} 1) rotate({head_angle:.1f})">
-    <rect x="0" y="{-head_h / 2:.1f}" width="{head_len}" height="{head_h}" rx="3" fill="#2563eb"/>
-    <line x1="5" y1="{head_h / 2 + 3:.1f}" x2="{head_len - 7:.1f}" y2="{head_h / 2 + 3:.1f}" stroke="#60a5fa" stroke-width="2"/>
+  <line x1="{pole_x:.1f}" y1="{pole_top:.1f}" x2="{head_x:.1f}" y2="{head_y:.1f}" stroke="#263241" stroke-width="6" stroke-linecap="round"/>
+  <g transform="translate({head_x:.1f} {head_y:.1f}) rotate({head_angle:.1f})">
+    <rect x="{-head_len / 2:.1f}" y="{-head_h / 2:.1f}" width="{head_len}" height="{head_h}" rx="3" fill="#2563eb"/>
+    <line x1="{-head_len / 2 + 7:.1f}" y1="{head_h / 2 + 3:.1f}" x2="{head_len / 2 - 7:.1f}" y2="{head_h / 2 + 3:.1f}" stroke="#60a5fa" stroke-width="2"/>
   </g>
-  <path d="M {head_x + 72:.1f} {pole_top:.1f} A 45 45 0 0 {1 if config.tilt >= 0 else 0} {head_x + 72 * math.cos(tilt_rad):.1f} {pole_top - 72 * math.sin(tilt_rad):.1f}" fill="none" stroke="#ef4444" stroke-width="1.6"/>
-  <rect x="{head_x + 74:.1f}" y="{pole_top - 23 if config.tilt >= 0 else pole_top + 12:.1f}" width="42" height="18" rx="3" fill="white" stroke="#fecaca"/>
-  <text x="{head_x + 95:.1f}" y="{pole_top - 10 if config.tilt >= 0 else pole_top + 25:.1f}" text-anchor="middle" font-size="12" font-weight="800" fill="#ef4444">{config.tilt:.0f}&#176;</text>
-  <line x1="{head_x + side_sign * (head_len + 8):.1f}" y1="{pole_top:.1f}" x2="{label_x - 12:.1f}" y2="{pole_top:.1f}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="{pole_x:.1f}" y1="{pole_top:.1f}" x2="{pole_x + side_sign * 72:.1f}" y2="{pole_top:.1f}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <path d="M {pole_x + side_sign * 45:.1f} {pole_top:.1f} A 45 45 0 0 {1 if config.tilt >= 0 else 0} {pole_x + side_sign * 45 * math.cos(tilt_rad):.1f} {pole_top - 45 * math.sin(tilt_rad):.1f}" fill="none" stroke="#ef4444" stroke-width="1.6"/>
+  <rect x="{pole_x + side_sign * 74 - (42 if side_sign < 0 else 0):.1f}" y="{pole_top - 23 if config.tilt >= 0 else pole_top + 12:.1f}" width="42" height="18" rx="3" fill="white" stroke="#fecaca"/>
+  <text x="{pole_x + side_sign * 95:.1f}" y="{pole_top - 10 if config.tilt >= 0 else pole_top + 25:.1f}" text-anchor="middle" font-size="12" font-weight="800" fill="#ef4444">{config.tilt:.0f}&#176;</text>
+  <line x1="{head_x + side_sign * (head_len / 2 + 8):.1f}" y1="{head_y:.1f}" x2="{label_x - 12:.1f}" y2="{head_y:.1f}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4"/>
   <rect x="{label_x:.1f}" y="74" width="220" height="106" rx="7" fill="#f8fafc" stroke="#dbe3ef"/>
-  <text x="{label_x + 12:.1f}" y="96" font-size="12" font-weight="800" fill="#0f172a">Luminaire position</text>
-  <text x="{label_x + 12:.1f}" y="118" font-size="11" fill="#334155">Arm length: {config.arm_length:.2f} m</text>
-  <text x="{label_x + 12:.1f}" y="138" font-size="11" fill="#334155">Pole offset: {config.pole_offset:.2f} m</text>
-  <text x="{label_x + 12:.1f}" y="158" font-size="11" fill="#334155">Pole side: {'Right sidewalk' if config.pole_side == 'right' else 'Left sidewalk'}</text>
-  <text x="{label_x + 12:.1f}" y="176" font-size="11" fill="#334155">Effective overhang: {config.arm_length - config.pole_offset:.2f} m</text>
+  <text x="{label_x + 12:.1f}" y="96" font-size="12" font-weight="800" fill="#0f172a">{_safe(t('svg.luminaire_position'))}</text>
+  <text x="{label_x + 12:.1f}" y="118" font-size="11" fill="#334155">{_safe(t('report.arm_length'))}: {config.arm_length:.2f} m</text>
+  <text x="{label_x + 12:.1f}" y="138" font-size="11" fill="#334155">{_safe(t('report.pole_offset'))}: {config.pole_offset:.2f} m</text>
+  <text x="{label_x + 12:.1f}" y="158" font-size="11" fill="#334155">{_safe(t('report.pole_side'))}: {_safe(t('report.right_sidewalk') if config.pole_side == 'right' else t('report.left_sidewalk'))}</text>
+  <text x="{label_x + 12:.1f}" y="176" font-size="11" fill="#334155">{_safe(t('report.mounting_height'))}: {luminaire_mounting_height(config):.2f} m</text>
   <rect x="{pole_x + 14:.1f}" y="{ground_y - 39:.1f}" width="260" height="18" rx="3" fill="white" opacity="0.94"/>
-  <text x="{pole_x + 22:.1f}" y="{ground_y - 26:.1f}" font-size="10.5" font-weight="700" fill="#475569">Pole outside roadway; luminaire projected over carriageway</text>
+  <text x="{pole_x + 22:.1f}" y="{ground_y - 26:.1f}" font-size="10.5" font-weight="700" fill="#475569">{_safe(t('svg.pole_outside'))}</text>
   {''.join(dims)}
 </svg>
 """
 
 
 def _cfg_dict(config: CalculationConfig, visual: bool = False):
-    effective_overhang = config.arm_length - config.pole_offset
     cfg = {
         "arrangement": config.arrangement,
-        "h": config.height,
+        "h": luminaire_mounting_height(config),
         "S": config.spacing,
         "W": config.road_width,
-        "arm": effective_overhang,
+        "arm": effective_overhang(config),
         "tilt": config.tilt,
         "mf": config.mf,
         "class": config.lighting_class,
+        "pole_side": config.pole_side,
     }
-    if visual:
-        cfg["pole_side"] = config.pole_side
     return cfg
 
 
 def _calculation_grids(result: CalculationResult, ldt_id: str):
+    t = translator(result.config.language)
     photometry = get_photometry(ldt_id)
     if photometry is None:
         return {}
@@ -390,7 +399,7 @@ def _calculation_grids(result: CalculationResult, ldt_id: str):
     try:
         road = calc_road(cfg, photometry, flux_scale=flux_scale)
         grids["illuminance"] = {
-            "title": "Roadway illuminance",
+            "title": t("svg.roadway_illuminance"),
             "unit": "lux",
             "xs": road["xs"],
             "ys": road["ys"],
@@ -406,7 +415,7 @@ def _calculation_grids(result: CalculationResult, ldt_id: str):
         try:
             lum = calc_luminance(cfg, photometry, flux_scale=flux_scale, road=result.config.pavement)
             grids["luminance"] = {
-                "title": "Roadway luminance - Observer 1",
+                "title": t("svg.roadway_luminance"),
                 "unit": "cd/m&#178;",
                 "xs": lum["xs"],
                 "ys": lum["ys"],
@@ -493,8 +502,9 @@ def _dense_isoline_field(calculationGrid, config: CalculationConfig, photometry,
     return xs, ys, values, min(flat), max(flat)
 
 
-def renderIsoLinesSvg(calculationGrid, config: CalculationConfig, photometry=None, flux_scale=1.0):
+def renderIsoLinesSvg(calculationGrid, config: CalculationConfig, photometry=None, flux_scale=1.0, t=None):
     """Render technical isolines from the calculated photometric field around each luminaire."""
+    t = t or translator(getattr(config, "language", "en"))
     xs = calculationGrid.get("xs", [])
     ys = calculationGrid.get("ys", [])
     values = calculationGrid.get("values", [])
@@ -573,7 +583,7 @@ def renderIsoLinesSvg(calculationGrid, config: CalculationConfig, photometry=Non
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">
   <rect width="{width}" height="{height}" fill="white"/>
   <text x="28" y="34" font-size="17" font-weight="800" fill="#0f172a">{title}</text>
-  <text x="28" y="53" font-size="11" fill="#64748b">Real contour lines from luminaire positions, with EN 13201 calculation points overlaid</text>
+  <text x="28" y="53" font-size="11" fill="#64748b">{_safe(t('svg.contours_subtitle'))}</text>
   <rect x="{plot_x}" y="{plot_y}" width="{plot_w}" height="{plot_h}" fill="#e8edf3" stroke="#cbd5e1"/>
   <rect x="{plot_x}" y="{road_y:.1f}" width="{plot_w}" height="{road_h:.1f}" fill="#59616c"/>
   {''.join(lanes)}
@@ -581,13 +591,13 @@ def renderIsoLinesSvg(calculationGrid, config: CalculationConfig, photometry=Non
   {''.join(lum_markers)}
   {''.join(grid_pts)}
   <line x1="{plot_x}" y1="{plot_y + plot_h + 24}" x2="{plot_x + plot_w}" y2="{plot_y + plot_h + 24}" stroke="#334155"/>
-  <text x="{plot_x + plot_w / 2}" y="{plot_y + plot_h + 42}" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">x coordinate over spacing ({config.spacing:.1f} m)</text>
+  <text x="{plot_x + plot_w / 2}" y="{plot_y + plot_h + 42}" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">{_safe(t('svg.x_coordinate', value=f'{config.spacing:.1f}'))}</text>
   <g transform="translate(820 94)">
     <rect x="0" y="0" width="60" height="150" rx="6" fill="#f8fafc" stroke="#dbe3ef"/>
-    <text x="30" y="22" text-anchor="middle" font-size="10" fill="#64748b">Scale</text>
-    <text x="30" y="48" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Avg</text>
+    <text x="30" y="22" text-anchor="middle" font-size="10" fill="#64748b">{_safe(t('svg.scale'))}</text>
+    <text x="30" y="48" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">{_safe(t('svg.avg'))}</text>
     <text x="30" y="64" text-anchor="middle" font-size="11" fill="#334155">{_fmt(calculationGrid.get("avg"), 2)}</text>
-    <text x="30" y="91" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Min</text>
+    <text x="30" y="91" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">{_safe(t('svg.min'))}</text>
     <text x="30" y="107" text-anchor="middle" font-size="11" fill="#334155">{_fmt(vmin, 2)}</text>
     <text x="30" y="133" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">Min/Avg</text>
     <text x="30" y="147" text-anchor="middle" font-size="10" fill="#334155">{_fmt(uniformity, 3)}</text>
@@ -596,25 +606,27 @@ def renderIsoLinesSvg(calculationGrid, config: CalculationConfig, photometry=Non
 """
 
 
-def renderResultsTable(result: CalculationResult):
+def renderResultsTable(result: CalculationResult, t=None):
+    t = t or translator(result.config.language)
     rows = []
     for criterion in result.criteria:
         status_class = "ok" if criterion.passed else "fail"
-        status = "PASS" if criterion.passed else "FAIL"
+        status = t("status.pass") if criterion.passed else t("status.fail")
         rows.append(
             f"<tr><td>{_safe(criterion.name)}</td><td>{_fmt(criterion.value, 3)}</td>"
             f"<td>{_fmt(criterion.required, 3)}</td><td><span class=\"{status_class}\">{status}</span></td></tr>"
         )
-    overall = "PASS" if result.compliant else "FAIL"
+    overall = t("status.pass") if result.compliant else t("status.fail")
     overall_class = "ok" if result.compliant else "fail"
     return (
-        "<table class=\"criteria-table\"><tr><th>Criterion</th><th>Value</th><th>Required</th><th>Status</th></tr>"
+        f"<table class=\"criteria-table\"><tr><th>{_safe(t('table.criterion'))}</th><th>{_safe(t('report.value'))}</th><th>{_safe(t('table.required'))}</th><th>{_safe(t('table.status'))}</th></tr>"
         + "".join(rows)
-        + f"<tr class=\"result-row\"><td colspan=\"3\">Overall compliance</td><td><span class=\"{overall_class}\">{overall}</span></td></tr></table>"
+        + f"<tr class=\"result-row\"><td colspan=\"3\">{_safe(t('table.overall'))}</td><td><span class=\"{overall_class}\">{overall}</span></td></tr></table>"
     )
 
 
-def _point_table(grid, max_rows=10, max_cols=12):
+def _point_table(grid, t=None, max_rows=10, max_cols=12):
+    t = t or translator("en")
     if not grid:
         return ""
     xs = grid.get("xs", [])[:max_cols]
@@ -632,13 +644,15 @@ def _point_table(grid, max_rows=10, max_cols=12):
                 cells.append("<td>-</td>")
         rows.append(f"<tr><th>y={_fmt(y, 1)}</th>{''.join(cells)}</tr>")
     return (
-        f"<div class=\"table-note\">Values in {unit}. Coordinates correspond to the isoline diagram.</div>"
+        f"<div class=\"table-note\">{_safe(t('report.point_values_note', unit=unit))}</div>"
         f"<table class=\"point-table\"><tr><th>y / x</th>{header}</tr>{''.join(rows)}</table>"
     )
 
 
 def _render_html(result: CalculationResult) -> str:
     cfg = result.config
+    language = normalize_language(cfg.language)
+    t = translator(language)
     ldt_info = result.luminaire
     full_ldt = get_ldt_by_id(ldt_info.id)
     photometry = get_photometry(ldt_info.id)
@@ -652,25 +666,109 @@ def _render_html(result: CalculationResult) -> str:
 
     template = env.get_template("report.html")
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    tr = {
+        key: t(key)
+        for key in [
+            "report.project_summary",
+            "report.luminaire",
+            "report.lighting_class",
+            "report.arrangement",
+            "report.road_height",
+            "report.maintenance_factor",
+            "report.pavement_cct_cri",
+            "report.planning_parameter",
+            "report.value",
+            "report.total_width",
+            "report.roadway_width",
+            "report.sidewalks",
+            "report.spacing",
+            "report.pole_side_offset_arm_tilt",
+            "report.right_sidewalk",
+            "report.left_sidewalk",
+            "report.footer_technical",
+            "report.photometry",
+            "report.property",
+            "report.manufacturer",
+            "report.model",
+            "report.optic_family",
+            "report.power",
+            "report.luminous_flux",
+            "report.efficiency",
+            "report.technical_note_polar",
+            "report.street_geometry",
+            "report.road_planning_data",
+            "report.public_road_profile",
+            "report.sidewalk_area_2",
+            "report.sidewalk_area_1",
+            "report.width",
+            "report.roadway",
+            "report.traffic_lanes",
+            "report.pavement",
+            "report.arrangement_geometry",
+            "report.luminaire_pole",
+            "report.pole_height",
+            "report.pole_offset",
+            "report.pole_side",
+            "report.effective_overhang",
+            "report.arm_tilt",
+            "report.arm_length",
+            "report.mounting_height",
+            "report.planning_relation",
+            "report.spacing_between_masts",
+            "report.road_total_width",
+            "report.optic_cct_cri",
+            "report.overall_result",
+            "report.pole_luminaire_h",
+            "report.arm_tilt_short",
+            "report.optic_status",
+            "report.footer_plan",
+            "report.performance",
+            "report.photometric_results",
+            "report.all_checked_pass",
+            "report.criteria_fail",
+            "report.isolines",
+            "report.isolines_title",
+            "report.no_grid",
+            "report.isoline_note",
+            "report.isoline_footer",
+            "report.point_table",
+            "report.point_note",
+            "report.point_footer",
+        ]
+    }
+    tr.update({
+        "report.subtitle": t("report.subtitle", standard="CIE 140 / EN 13201"),
+        "report.generated": t("report.generated", date=now),
+        "report.compliant_text": t("report.compliant_text", class_name=cfg.lighting_class),
+        "report.non_compliant_text": t("report.non_compliant_text", class_name=cfg.lighting_class),
+        "luminaire_footer": t("report.luminaire_footer", name=ldt_info.luminaire_name),
+        "criteria_table_footer": t("report.criteria_table", standard="CIE 140 / EN 13201"),
+        **{f"page_{page}": t("report.page", page=page) for page in range(1, 7)},
+    })
 
     return template.render(
-        title=f"Road Lighting Report - {ldt_info.luminaire_name}",
+        language=language,
+        tr=tr,
+        title=f"{t('report.title')} - {ldt_info.luminaire_name}",
         date=now,
         standard="CIE 140 / EN 13201",
         compliant=result.compliant,
-        compliant_label="PASS" if result.compliant else "FAIL",
+        compliant_label=t("status.pass") if result.compliant else t("status.fail"),
         compliant_color="#10b981" if result.compliant else "#ef4444",
         luminaire=ldt_info,
         cfg=cfg,
         total_width=cfg.road_width + cfg.sidewalk_left + cfg.sidewalk_right,
-        road_plan_svg=renderRoadPlanSvg(cfg),
-        road_section_svg=renderRoadSectionSvg(cfg),
-        mini_section_svg=renderRoadSectionSvg(cfg),
-        polar_svg=renderPolarPhotometrySvg(full_ldt or {"luminaire_name": ldt_info.luminaire_name, "C": [], "G": [], "I": []}),
-        iso_luminance_svg=renderIsoLinesSvg(luminance_grid, cfg, photometry, flux_scale) if luminance_grid else "",
-        iso_illuminance_svg=renderIsoLinesSvg(illuminance_grid, cfg, photometry, flux_scale) if illuminance_grid else "",
-        results_table=renderResultsTable(result),
-        point_table=_point_table(primary_grid),
+        arm_horizontal=arm_projection(cfg)[0],
+        effective_arm_overhang=effective_overhang(cfg),
+        luminaire_mounting_height=luminaire_mounting_height(cfg),
+        road_plan_svg=renderRoadPlanSvg(cfg, t),
+        road_section_svg=renderRoadSectionSvg(cfg, t),
+        mini_section_svg=renderRoadSectionSvg(cfg, t),
+        polar_svg=renderPolarPhotometrySvg(full_ldt or {"luminaire_name": ldt_info.luminaire_name, "C": [], "G": [], "I": []}, t),
+        iso_luminance_svg=renderIsoLinesSvg(luminance_grid, cfg, photometry, flux_scale, t) if luminance_grid else "",
+        iso_illuminance_svg=renderIsoLinesSvg(illuminance_grid, cfg, photometry, flux_scale, t) if illuminance_grid else "",
+        results_table=renderResultsTable(result, t),
+        point_table=_point_table(primary_grid, t),
         Lavg=_fmt(result.Lavg, 2),
         Uo=_fmt(result.Uo, 3),
         Ul=_fmt(result.Ul, 3),

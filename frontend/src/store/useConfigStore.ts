@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Language } from '../i18n';
 
 export interface ConfigState {
   // Road geometry
@@ -28,6 +29,8 @@ export interface ConfigState {
   mf: number; // maintenance factor
   pavement: 'R1' | 'R2' | 'R3' | 'R4';
   cct: number; // Kelvin
+  cri: 70 | 80 | 90;
+  language: Language;
 
   // Calculated results
   results: CalculationResult | null;
@@ -55,6 +58,8 @@ export interface ConfigState {
   setMf: (m: number) => void;
   setPavement: (p: ConfigState['pavement']) => void;
   setCct: (c: number) => void;
+  setCri: (c: ConfigState['cri']) => void;
+  setLanguage: (language: Language) => void;
   setResults: (r: CalculationResult | null) => void;
   setLoading: (l: boolean) => void;
   setError: (e: string | null) => void;
@@ -73,6 +78,7 @@ interface CalculationResult {
     manufacturer: string;
     model_family: string;
     cct: number;
+    cri: number;
     optic_family: string;
     power: number;
     flux: number;
@@ -120,6 +126,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   mf: 0.85,
   pavement: 'R3',
   cct: 4000,
+  cri: 70,
+  language: (localStorage.getItem('lux-studio-language') as Language) || 'es',
 
   results: null,
   loading: false,
@@ -151,6 +159,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   setMf: (m: number) => set({ mf: m }),
   setPavement: (p: 'R1' | 'R2' | 'R3' | 'R4') => set({ pavement: p }),
   setCct: (c: number) => set({ cct: c }),
+  setCri: (c: 70 | 80 | 90) => set({ cri: c }),
+  setLanguage: (language: Language) => {
+    localStorage.setItem('lux-studio-language', language);
+    set({ language });
+  },
   setResults: (r: CalculationResult | null) => set({ results: r }),
   setLoading: (l: boolean) => set({ loading: l }),
   setError: (e: string | null) => set({ error: e }),
@@ -175,6 +188,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     mf: 0.85,
     pavement: 'R3',
     cct: 4000,
+    cri: 70,
+    language: get().language,
     results: null,
     loading: false,
     error: null,
@@ -196,9 +211,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         height: config.height,
         spacing: config.spacing,
         arm_length: config.arm_length,
+        armLength: config.arm_length,
         pole_offset: config.pole_offset,
         pole_side: config.pole_side,
         tilt: config.tilt,
+        armTiltAngle: config.tilt,
         optic_family: config.optic_family,
         power: config.power,
         ldt_id: config.ldt_id,
@@ -208,6 +225,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         mf: config.mf,
         pavement: config.pavement,
         cct: config.cct,
+        cri: config.cri,
+        language: config.language,
       };
 
       // Call backend (via Vite proxy)

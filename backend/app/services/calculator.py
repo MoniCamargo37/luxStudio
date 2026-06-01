@@ -2,15 +2,53 @@ from typing import Optional
 
 from ..salvi_lighting import evaluate, ME_REQ, P_REQ, Photometry
 from ..schemas.models import CalculationConfig, CalculationResult, CriterionResult, LDTInfo
+from .geometry import arm_projection, effective_overhang, luminaire_mounting_height
 from .ldt_loader import get_all_ldts, get_ldt_by_id, get_photometry
 
 POWER_LAW_EXPONENT = 0.832
+
+# LUXEON 5050 Round typical luminous flux at rated current, Tj=25 C.
+# Values are normalized against CRI 70 by CCT and interpolated for intermediate CCTs.
+LUXEON_5050_CRI_FLUX = {
+    2700: {70: 640.0, 80: 593.0, 90: 475.0},
+    3000: {70: 667.0, 80: 615.0, 90: 490.0},
+    3500: {70: 686.0, 80: 620.0, 90: 510.0},
+    4000: {70: 693.0, 80: 645.0, 90: 530.0},
+    5000: {70: 693.0, 80: 645.0, 90: 530.0},
+    5700: {70: 683.0, 80: 644.0, 90: 530.0},
+}
 
 
 def _power_law_flux(ref_power: float, ref_flux: float, target_power: float) -> float:
     if ref_power <= 0 or target_power <= 0:
         return ref_flux
     return ref_flux * (target_power / ref_power) ** POWER_LAW_EXPONENT
+
+
+def _cri_flux_factor(cct: int, target_cri: int, reference_cri: int = 70) -> float:
+    target_cri = min(90, max(70, int(target_cri)))
+    reference_cri = min(90, max(70, int(reference_cri)))
+    if target_cri == reference_cri:
+        return 1.0
+
+    def flux_for_cri(values: dict[int, float], cri: int) -> Optional[float]:
+        return _interpolate(float(cri), [(float(key), value) for key, value in values.items()])
+
+    target_points = [
+        (float(cct_value), flux_for_cri(values, target_cri))
+        for cct_value, values in LUXEON_5050_CRI_FLUX.items()
+    ]
+    reference_points = [
+        (float(cct_value), flux_for_cri(values, reference_cri))
+        for cct_value, values in LUXEON_5050_CRI_FLUX.items()
+    ]
+    target_points = [(cct_value, flux) for cct_value, flux in target_points if flux is not None]
+    reference_points = [(cct_value, flux) for cct_value, flux in reference_points if flux is not None]
+    target_flux = _interpolate(float(cct), target_points)
+    reference_flux = _interpolate(float(cct), reference_points)
+    if not target_flux or not reference_flux:
+        return 1.0
+    return target_flux / reference_flux
 
 
 def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult:
@@ -26,6 +64,7 @@ def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult
         exact_config = config.model_copy(update={
             "power": float(photometry.power),
             "cct": int(ldt_info.get("cct", config.cct)),
+            "cri": int(ldt_info.get("cri", config.cri)),
             "optic_family": ldt_info.get("optic_family", config.optic_family),
             "manufacturer": ldt_info.get("manufacturer", config.manufacturer),
             "model_family": ldt_info.get("model_family", config.model_family),
@@ -33,6 +72,7 @@ def run_calculation(config: CalculationConfig, ldt_id: str) -> CalculationResult
         target_info = dict(ldt_info)
         target_info["power"] = float(photometry.power)
         target_info["cct"] = int(ldt_info.get("cct", exact_config.cct))
+        target_info["cri"] = int(ldt_info.get("cri", exact_config.cri))
         target_info["flux"] = float(photometry.flux)
         target_info["efficiency"] = round(photometry.eff, 1)
         return run_calculation_with_photometry(exact_config, photometry, target_info, flux_scale=1.0)
@@ -64,6 +104,7 @@ def run_calculation_with_photometry(
             manufacturer=ldt_info.get("manufacturer", "Unknown"),
             model_family=ldt_info.get("model_family", "UNKNOWN"),
             cct=ldt_info.get("cct", config.cct),
+            cri=ldt_info.get("cri", config.cri),
             optic_family=ldt_info["optic_family"],
             power=ldt_info["power"],
             flux=ldt_info["flux"],
@@ -83,22 +124,23 @@ def run_calculation_with_photometry(
 
 
 def _config_to_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
-    effective_overhang = config.arm_length - config.pole_offset
     return {
         "arrangement": config.arrangement,
-        "h": config.height,
+        "h": luminaire_mounting_height(config),
         "S": config.spacing,
         "W": config.road_width,
-        "arm": effective_overhang,
+        "arm": effective_overhang(config),
         "tilt": config.tilt,
         "mf": config.mf,
         "class": config.lighting_class,
+        "pole_side": config.pole_side,
     }
 
 
 def _config_to_uniformity_cfg(config: CalculationConfig, photometry: Photometry) -> dict:
     cfg = _config_to_cfg(config, photometry)
-    cfg["arm"] = config.arm_length + config.pole_offset
+    horizontal_arm, _ = arm_projection(config)
+    cfg["arm"] = horizontal_arm + config.pole_offset
     return cfg
 
 
@@ -133,10 +175,13 @@ def _target_luminaire_info(config: CalculationConfig, photometry: Photometry, re
     target = dict(reference_info)
 
     if abs(config.power - photometry.power) / max(photometry.power, 0.1) < 0.01:
+        reference_cri = int(reference_info.get("cri", 70) or 70)
+        target_flux = float(photometry.flux) * _cri_flux_factor(config.cct, config.cri, reference_cri)
         target["power"] = float(config.power)
         target["cct"] = int(config.cct)
-        target["flux"] = float(photometry.flux)
-        target["efficiency"] = round(photometry.eff, 1)
+        target["cri"] = int(config.cri)
+        target["flux"] = target_flux
+        target["efficiency"] = round(target_flux / float(config.power), 1) if config.power else 0
         return target
 
     target_flux = _estimate_flux_for_config(config, reference_info)
@@ -147,8 +192,12 @@ def _target_luminaire_info(config: CalculationConfig, photometry: Photometry, re
         else:
             target_flux = _power_law_flux(photometry.power, photometry.flux, float(config.power))
 
+    reference_cri = int(reference_info.get("cri", 70) or 70)
+    target_flux *= _cri_flux_factor(config.cct, config.cri, reference_cri)
+
     target["power"] = float(config.power)
     target["cct"] = int(config.cct)
+    target["cri"] = int(config.cri)
     target["flux"] = float(target_flux)
     target["efficiency"] = round(float(target_flux) / float(config.power), 1) if config.power else 0
     return target
@@ -160,6 +209,7 @@ def _estimate_flux_for_config(config: CalculationConfig, reference_info: dict) -
         if ldt.get("manufacturer", "Unknown") == reference_info.get("manufacturer", "Unknown")
         and ldt.get("model_family", "UNKNOWN") == reference_info.get("model_family", "UNKNOWN")
         and ldt.get("optic_family") == reference_info.get("optic_family")
+        and int(ldt.get("cri", 70) or 70) == int(reference_info.get("cri", 70) or 70)
     ]
     if not candidates:
         return None

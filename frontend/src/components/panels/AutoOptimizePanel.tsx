@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import type { AdvancedOptimizationObjective, AdvancedOptimizationVariables, LDTInfo } from '../../types';
+import { useI18n } from '../../i18n';
 
 interface AutoOptimizePanelProps {
   loading: boolean;
@@ -13,12 +14,15 @@ interface AutoOptimizePanelProps {
 }
 
 const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSimple, onRunAdvanced }) => {
+  const { t } = useI18n();
   const { manufacturer, model_family, optic_family } = useConfigStore();
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
   const [variables, setVariables] = useState<AdvancedOptimizationVariables>({
     power: true,
     spacing: false,
     height: false,
+    arm_length: false,
+    tilt: false,
     optic_family: false,
   });
   const [objective, setObjective] = useState<AdvancedOptimizationObjective>('technical_limits');
@@ -83,13 +87,13 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Auto optimize</h3>
+            <h3 className="text-sm font-semibold text-slate-800">{t('optimize.title')}</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {mode === 'simple' ? 'Minimum compliant power' : 'Priority-based setup'}
+              {mode === 'simple' ? t('optimize.simpleSubtitle') : t('optimize.advancedSubtitle')}
             </p>
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-2 py-1">
-            {mode === 'simple' ? 'v1' : 'advanced'}
+            {mode === 'simple' ? 'v1' : t('optimize.advanced')}
           </span>
         </div>
       </div>
@@ -107,22 +111,22 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {option === 'simple' ? 'Power' : 'Advanced'}
+              {option === 'simple' ? t('optimize.power') : t('optimize.advanced')}
             </button>
           ))}
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-            <div className="text-slate-400 uppercase tracking-wide text-[10px]">Fixed</div>
+            <div className="text-slate-400 uppercase tracking-wide text-[10px]">{t('optimize.fixed')}</div>
             <div className="font-medium text-slate-700 mt-0.5">
-              {mode === 'simple' ? 'Geometry + optics' : 'Road + optics'}
+              {mode === 'simple' ? t('optimize.geometryOptics') : t('optimize.roadOptics')}
             </div>
           </div>
           <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-            <div className="text-slate-400 uppercase tracking-wide text-[10px]">Variable</div>
+            <div className="text-slate-400 uppercase tracking-wide text-[10px]">{t('optimize.variable')}</div>
             <div className="font-medium text-slate-700 mt-0.5">
-              {mode === 'simple' ? 'Power only' : 'Power + selected'}
+              {mode === 'simple' ? t('optimize.powerOnly') : t('optimize.powerSelected')}
             </div>
           </div>
         </div>
@@ -130,25 +134,27 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
         {mode === 'advanced' && (
           <div className="space-y-3">
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1.5">Priority</span>
+              <span className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1.5">{t('optimize.priority')}</span>
               <select
                 value={objective}
                 onChange={(event) => setObjective(event.target.value as AdvancedOptimizationObjective)}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
               >
-                <option value="technical_limits">Closest to limits</option>
-                <option value="min_power">Lowest power</option>
-                <option value="max_spacing">Maximum spacing</option>
+                <option value="technical_limits">{t('optimize.closestLimits')}</option>
+                <option value="min_power">{t('optimize.lowestPower')}</option>
+                <option value="max_spacing">{t('optimize.maxSpacing')}</option>
               </select>
             </label>
 
             <div className="space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wide text-slate-400">Allow changes</div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-400">{t('optimize.allowChanges')}</div>
               {([
-                ['power', 'Power'],
-                ['spacing', 'Spacing'],
-                ['height', 'Height'],
-                ['optic_family', 'Lens / Optic'],
+                ['power', t('luminaire.power')],
+                ['spacing', t('geometry.spacing')],
+                ['height', t('pole.height')],
+                ['arm_length', t('pole.armLength')],
+                ['tilt', t('pole.armTilt')],
+                ['optic_family', t('luminaire.lensOptic')],
               ] as const).map(([key, label]) => (
                 <label
                   key={key}
@@ -157,7 +163,7 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                       : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                   } ${key === 'power' ? 'cursor-default' : ''}`}
-                  title={key === 'power' ? 'Power stays enabled in advanced v1' : undefined}
+                  title={key === 'power' ? t('optimize.powerAlwaysEnabled') : undefined}
                 >
                   <input
                     type="checkbox"
@@ -173,7 +179,7 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
 
             {variables.optic_family && (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="mb-2 text-[10px] uppercase tracking-wide text-slate-400">Lens selection</div>
+                <div className="mb-2 text-[10px] uppercase tracking-wide text-slate-400">{t('optimize.lensSelection')}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {availableOptics.map(optic => (
                     <label
@@ -194,7 +200,7 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
                     </label>
                   ))}
                   {availableOptics.length === 0 && (
-                    <span className="text-xs text-slate-400">No lenses available for this model.</span>
+                    <span className="text-xs text-slate-400">{t('optimize.noLenses')}</span>
                   )}
                 </div>
               </div>
@@ -212,7 +218,7 @@ const AutoOptimizePanel: React.FC<AutoOptimizePanelProps> = ({ loading, onRunSim
               : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 shadow-sm shadow-emerald-100'
           }`}
         >
-          {loading ? 'Optimizing...' : mode === 'advanced' ? 'Optimize setup' : 'Make it comply'}
+          {loading ? t('optimize.optimizing') : mode === 'advanced' ? t('optimize.runAdvanced') : t('optimize.runSimple')}
         </button>
       </div>
     </section>

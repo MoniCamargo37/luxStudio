@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ language }}">
 <head>
 <meta charset="utf-8">
 <title>{{ title }}</title>
@@ -273,92 +273,93 @@
     <header class="header">
       <div>
         <div class="brand">LUX Studio</div>
-        <div class="subtitle">Road Lighting Report - {{ standard }}</div>
+        <div class="subtitle">{{ tr["report.subtitle"] }}</div>
       </div>
       <div>
         <div class="badge">{{ compliant_label }}</div>
-        <div class="meta">Generated {{ date }}</div>
+        <div class="meta">{{ tr["report.generated"] }}</div>
       </div>
     </header>
 
-    <h1 class="section-title">Project Summary</h1>
+    <h1 class="section-title">{{ tr["report.project_summary"] }}</h1>
     <div class="summary-grid">
-      <div class="summary-card"><div class="summary-label">Luminaire</div><div class="summary-value">{{ luminaire.luminaire_name }}</div></div>
-      <div class="summary-card"><div class="summary-label">Lighting class</div><div class="summary-value">{{ cfg.lighting_class }}</div></div>
-      <div class="summary-card"><div class="summary-label">Arrangement</div><div class="summary-value">{{ cfg.arrangement }}</div></div>
-      <div class="summary-card"><div class="summary-label">Road / height</div><div class="summary-value">{{ "%.1f"|format(cfg.road_width) }} m / {{ "%.1f"|format(cfg.height) }} m</div></div>
-      <div class="summary-card"><div class="summary-label">Maintenance factor</div><div class="summary-value">{{ "%.2f"|format(cfg.mf) }}</div></div>
-      <div class="summary-card"><div class="summary-label">Pavement / CCT</div><div class="summary-value">{{ cfg.pavement }} / {{ cfg.cct }} K</div></div>
+      <div class="summary-card"><div class="summary-label">{{ tr["report.luminaire"] }}</div><div class="summary-value">{{ luminaire.luminaire_name }}</div></div>
+      <div class="summary-card"><div class="summary-label">{{ tr["report.lighting_class"] }}</div><div class="summary-value">{{ cfg.lighting_class }}</div></div>
+      <div class="summary-card"><div class="summary-label">{{ tr["report.arrangement"] }}</div><div class="summary-value">{{ cfg.arrangement }}</div></div>
+      <div class="summary-card"><div class="summary-label">{{ tr["report.road_height"] }}</div><div class="summary-value">{{ "%.1f"|format(cfg.road_width) }} m / {{ "%.1f"|format(cfg.height) }} m</div></div>
+      <div class="summary-card"><div class="summary-label">{{ tr["report.maintenance_factor"] }}</div><div class="summary-value">{{ "%.2f"|format(cfg.mf) }}</div></div>
+      <div class="summary-card"><div class="summary-label">{{ tr["report.pavement_cct_cri"] }}</div><div class="summary-value">{{ cfg.pavement }} / {{ cfg.cct }} K / {{ cfg.cri }}</div></div>
     </div>
 
     <div class="chart-card large-chart">{{ mini_section_svg }}</div>
 
     <div class="two-col" style="display:none">
       <table>
-        <tr><th>Planning parameter</th><th>Value</th></tr>
-        <tr><td>Total width</td><td class="value">{{ "%.1f"|format(total_width) }} m</td></tr>
-        <tr><td>Roadway width</td><td class="value">{{ "%.1f"|format(cfg.road_width) }} m</td></tr>
-        <tr><td>Sidewalks</td><td class="value">{{ "%.1f"|format(cfg.sidewalk_left) }} m / {{ "%.1f"|format(cfg.sidewalk_right) }} m</td></tr>
-        <tr><td>Spacing</td><td class="value">{{ "%.1f"|format(cfg.spacing) }} m</td></tr>
-        <tr><td>Pole side / offset / arm / tilt</td><td class="value">{{ "Right sidewalk" if cfg.pole_side == "right" else "Left sidewalk" }} / {{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.1f"|format(cfg.arm_length) }} m / {{ "%.0f"|format(cfg.tilt) }}&deg;</td></tr>
+        <tr><th>{{ tr["report.planning_parameter"] }}</th><th>{{ tr["report.value"] }}</th></tr>
+        <tr><td>{{ tr["report.total_width"] }}</td><td class="value">{{ "%.1f"|format(total_width) }} m</td></tr>
+        <tr><td>{{ tr["report.roadway_width"] }}</td><td class="value">{{ "%.1f"|format(cfg.road_width) }} m</td></tr>
+        <tr><td>{{ tr["report.sidewalks"] }}</td><td class="value">{{ "%.1f"|format(cfg.sidewalk_left) }} m / {{ "%.1f"|format(cfg.sidewalk_right) }} m</td></tr>
+        <tr><td>{{ tr["report.spacing"] }}</td><td class="value">{{ "%.1f"|format(cfg.spacing) }} m</td></tr>
+        <tr><td>{{ tr["report.pole_side_offset_arm_tilt"] }}</td><td class="value">{{ tr["report.right_sidewalk"] if cfg.pole_side == "right" else tr["report.left_sidewalk"] }} / {{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.1f"|format(cfg.arm_length) }} m / {{ "%.0f"|format(cfg.tilt) }}&deg;</td></tr>
       </table>
       <div class="verdict" style="margin-top: 0;">
         <div class="verdict-title">{{ compliant_label }}</div>
         <div>
           {% if compliant %}
-            The current road lighting configuration satisfies all checked criteria for class {{ cfg.lighting_class }}.
+            {{ tr["report.compliant_text"] }}
           {% else %}
-            The current road lighting configuration does not satisfy every checked criterion for class {{ cfg.lighting_class }}.
+            {{ tr["report.non_compliant_text"] }}
           {% endif %}
         </div>
       </div>
     </div>
-    <div class="footer"><span>LUX Studio technical report</span><span>Page 1</span></div>
+    <div class="footer"><span>{{ tr["report.footer_technical"] }}</span><span>{{ tr["page_1"] }}</span></div>
   </section>
 
   <section class="page">
     <header class="header">
-      <div><div class="brand">LUX Studio</div><div class="subtitle">Luminaire photometry</div></div>
+      <div><div class="brand">LUX Studio</div><div class="subtitle">{{ tr["report.photometry"] }}</div></div>
       <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
     </header>
-    <h2 class="section-title">Luminaire</h2>
+    <h2 class="section-title">{{ tr["report.luminaire"] }}</h2>
     <div class="two-col">
       <table>
-        <tr><th>Property</th><th>Value</th></tr>
-        <tr><td>Manufacturer</td><td class="value">{{ luminaire.manufacturer }}</td></tr>
-        <tr><td>Model</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
-        <tr><td>Optic family</td><td class="value">{{ luminaire.optic_family }}</td></tr>
-        <tr><td>Power</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
-        <tr><td>Luminous flux</td><td class="value">{{ "{:,.0f}".format(luminaire.flux) }} lm</td></tr>
-        <tr><td>Efficiency</td><td class="value">{{ "%.1f"|format(luminaire.efficiency) }} lm/W</td></tr>
+        <tr><th>{{ tr["report.property"] }}</th><th>{{ tr["report.value"] }}</th></tr>
+        <tr><td>{{ tr["report.manufacturer"] }}</td><td class="value">{{ luminaire.manufacturer }}</td></tr>
+        <tr><td>{{ tr["report.model"] }}</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
+        <tr><td>{{ tr["report.optic_family"] }}</td><td class="value">{{ luminaire.optic_family }}</td></tr>
+        <tr><td>{{ tr["report.power"] }}</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
+        <tr><td>CRI</td><td class="value">{{ luminaire.cri }}</td></tr>
+        <tr><td>{{ tr["report.luminous_flux"] }}</td><td class="value">{{ "{:,.0f}".format(luminaire.flux) }} lm</td></tr>
+        <tr><td>{{ tr["report.efficiency"] }}</td><td class="value">{{ "%.1f"|format(luminaire.efficiency) }} lm/W</td></tr>
         <tr><td>LOR / LORL</td><td class="value">{{ "%.0f"|format(luminaire.LORL) }} %</td></tr>
       </table>
       <div class="technical-note">
-        Photometric planes are rendered as scalable SVG from the selected LDT file. The red plane identifies C0-180 and the blue plane identifies C90-270. Radial labels are separated from the curves to keep the graph readable in PDF.
+        {{ tr["report.technical_note_polar"] }}
       </div>
     </div>
     <div class="chart-card polar-card" style="margin-top: 12px;">{{ polar_svg }}</div>
-    <div class="footer"><span>Luminaire: {{ luminaire.luminaire_name }}</span><span>Page 2</span></div>
+    <div class="footer"><span>{{ tr["luminaire_footer"] }}</span><span>{{ tr["page_2"] }}</span></div>
   </section>
 
   <section class="page">
     <header class="header">
-      <div><div class="brand">LUX Studio</div><div class="subtitle">Street planning geometry</div></div>
+      <div><div class="brand">LUX Studio</div><div class="subtitle">{{ tr["report.street_geometry"] }}</div></div>
       <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
     </header>
-    <h2 class="section-title">Road Planning Data</h2>
+    <h2 class="section-title">{{ tr["report.road_planning_data"] }}</h2>
     <div class="planning-profile">
-      <h3>Public road profile</h3>
+      <h3>{{ tr["report.public_road_profile"] }}</h3>
       <table>
-        <tr><td>Sidewalk / Pedestrian area 2</td><td class="value">Width: {{ "%.2f"|format(cfg.sidewalk_right) }} m</td></tr>
-        <tr class="planning-row-highlight"><td>Roadway</td><td class="value">Width: {{ "%.2f"|format(cfg.road_width) }} m, traffic lanes: {{ cfg.lanes }}, pavement: {{ cfg.pavement }}</td></tr>
-        <tr><td>Sidewalk / Pedestrian area 1</td><td class="value">Width: {{ "%.2f"|format(cfg.sidewalk_left) }} m</td></tr>
-        <tr><td>Maintenance factor</td><td class="value">{{ "%.2f"|format(cfg.mf) }}</td></tr>
+        <tr><td>{{ tr["report.sidewalk_area_2"] }}</td><td class="value">{{ tr["report.width"] }}: {{ "%.2f"|format(cfg.sidewalk_right) }} m</td></tr>
+        <tr class="planning-row-highlight"><td>{{ tr["report.roadway"] }}</td><td class="value">{{ tr["report.width"] }}: {{ "%.2f"|format(cfg.road_width) }} m, {{ tr["report.traffic_lanes"] }}: {{ cfg.lanes }}, {{ tr["report.pavement"] }}: {{ cfg.pavement }}</td></tr>
+        <tr><td>{{ tr["report.sidewalk_area_1"] }}</td><td class="value">{{ tr["report.width"] }}: {{ "%.2f"|format(cfg.sidewalk_left) }} m</td></tr>
+        <tr><td>{{ tr["report.maintenance_factor"] }}</td><td class="value">{{ "%.2f"|format(cfg.mf) }}</td></tr>
       </table>
     </div>
 
     <div class="planning-block">
-      <h3>Luminaire arrangement and street geometry</h3>
+      <h3>{{ tr["report.arrangement_geometry"] }}</h3>
       <div class="planning-drawings">
         <div class="chart-card">{{ road_plan_svg }}</div>
         <div class="chart-card">{{ road_section_svg }}</div>
@@ -367,43 +368,44 @@
 
     <div class="planning-data-grid" style="display:none">
       <table>
-        <tr><th>Luminaire / pole</th><th>Value</th></tr>
-        <tr><td>Luminaire</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
-        <tr><td>Luminous flux</td><td class="value">{{ "{:,.0f}".format(luminaire.flux) }} lm</td></tr>
-        <tr><td>Power</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
-        <tr><td>Mounting height (1)</td><td class="value">{{ "%.2f"|format(cfg.height) }} m</td></tr>
-        <tr><td>Pole offset from road edge</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m</td></tr>
-        <tr><td>Pole side</td><td class="value">{{ "Right sidewalk" if cfg.pole_side == "right" else "Left sidewalk" }}</td></tr>
-        <tr><td>Effective overhang / saliente (2)</td><td class="value">{{ "%.2f"|format(cfg.arm_length - cfg.pole_offset) }} m</td></tr>
-        <tr><td>Head tilt (3)</td><td class="value">{{ "%.0f"|format(cfg.tilt) }}&deg;</td></tr>
-        <tr><td>Bracket length (4)</td><td class="value">{{ "%.2f"|format(cfg.arm_length) }} m</td></tr>
+        <tr><th>{{ tr["report.luminaire_pole"] }}</th><th>{{ tr["report.value"] }}</th></tr>
+        <tr><td>{{ tr["report.luminaire"] }}</td><td class="value">{{ luminaire.luminaire_name }}</td></tr>
+        <tr><td>{{ tr["report.luminous_flux"] }}</td><td class="value">{{ "{:,.0f}".format(luminaire.flux) }} lm</td></tr>
+        <tr><td>{{ tr["report.power"] }}</td><td class="value">{{ "%.0f"|format(luminaire.power) }} W</td></tr>
+        <tr><td>{{ tr["report.pole_height"] }} (1)</td><td class="value">{{ "%.2f"|format(cfg.height) }} m</td></tr>
+        <tr><td>{{ tr["report.pole_offset"] }}</td><td class="value">{{ "%.2f"|format(cfg.pole_offset) }} m</td></tr>
+        <tr><td>{{ tr["report.pole_side"] }}</td><td class="value">{{ tr["report.right_sidewalk"] if cfg.pole_side == "right" else tr["report.left_sidewalk"] }}</td></tr>
+        <tr><td>{{ tr["report.effective_overhang"] }} (2)</td><td class="value">{{ "%.2f"|format(effective_arm_overhang) }} m</td></tr>
+        <tr><td>{{ tr["report.arm_tilt"] }} (3)</td><td class="value">{{ "%.0f"|format(cfg.tilt) }}&deg;</td></tr>
+        <tr><td>{{ tr["report.arm_length"] }} (4)</td><td class="value">{{ "%.2f"|format(cfg.arm_length) }} m</td></tr>
+        <tr><td>{{ tr["report.mounting_height"] }}</td><td class="value">{{ "%.2f"|format(luminaire_mounting_height) }} m</td></tr>
       </table>
       <table>
-        <tr><th>Planning relation</th><th>Value</th></tr>
-        <tr><td>Arrangement</td><td class="value">{{ cfg.arrangement }}</td></tr>
-        <tr><td>Spacing between masts</td><td class="value">{{ "%.2f"|format(cfg.spacing) }} m</td></tr>
-        <tr><td>Road / total width</td><td class="value">{{ "%.2f"|format(cfg.road_width) }} m / {{ "%.2f"|format(total_width) }} m</td></tr>
-        <tr><td>Lighting class</td><td class="value">{{ cfg.lighting_class }}</td></tr>
-        <tr><td>Optic / CCT</td><td class="value">{{ luminaire.optic_family }} / {{ cfg.cct }} K</td></tr>
-        <tr><td>Overall result</td><td class="value"><span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></td></tr>
+        <tr><th>{{ tr["report.planning_relation"] }}</th><th>{{ tr["report.value"] }}</th></tr>
+        <tr><td>{{ tr["report.arrangement"] }}</td><td class="value">{{ cfg.arrangement }}</td></tr>
+        <tr><td>{{ tr["report.spacing_between_masts"] }}</td><td class="value">{{ "%.2f"|format(cfg.spacing) }} m</td></tr>
+        <tr><td>{{ tr["report.road_total_width"] }}</td><td class="value">{{ "%.2f"|format(cfg.road_width) }} m / {{ "%.2f"|format(total_width) }} m</td></tr>
+        <tr><td>{{ tr["report.lighting_class"] }}</td><td class="value">{{ cfg.lighting_class }}</td></tr>
+        <tr><td>{{ tr["report.optic_cct_cri"] }}</td><td class="value">{{ luminaire.optic_family }} / {{ cfg.cct }} K / {{ cfg.cri }}</td></tr>
+        <tr><td>{{ tr["report.overall_result"] }}</td><td class="value"><span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></td></tr>
       </table>
     </div>
 
     <div class="relation-strip">
-      <div class="relation-item"><div class="summary-label">Spacing</div><div class="summary-value">{{ "%.1f"|format(cfg.spacing) }} m</div></div>
-      <div class="relation-item"><div class="summary-label">Height / arm</div><div class="summary-value">{{ "%.1f"|format(cfg.height) }} m / {{ "%.1f"|format(cfg.arm_length) }} m</div></div>
-      <div class="relation-item"><div class="summary-label">Offset / tilt</div><div class="summary-value">{{ "%.2f"|format(cfg.pole_offset) }} m / {{ "%.0f"|format(cfg.tilt) }}&deg;</div></div>
-      <div class="relation-item"><div class="summary-label">Optic / status</div><div class="summary-value">{{ luminaire.optic_family }} / <span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></div></div>
+      <div class="relation-item"><div class="summary-label">{{ tr["report.spacing"] }}</div><div class="summary-value">{{ "%.1f"|format(cfg.spacing) }} m</div></div>
+      <div class="relation-item"><div class="summary-label">{{ tr["report.pole_luminaire_h"] }}</div><div class="summary-value">{{ "%.1f"|format(cfg.height) }} m / {{ "%.1f"|format(luminaire_mounting_height) }} m</div></div>
+      <div class="relation-item"><div class="summary-label">{{ tr["report.arm_tilt_short"] }}</div><div class="summary-value">{{ "%.1f"|format(cfg.arm_length) }} m / {{ "%.0f"|format(cfg.tilt) }}&deg;</div></div>
+      <div class="relation-item"><div class="summary-label">{{ tr["report.optic_status"] }}</div><div class="summary-value">{{ luminaire.optic_family }} / <span class="{{ 'ok' if compliant else 'fail' }}">{{ compliant_label }}</span></div></div>
     </div>
-    <div class="footer"><span>Plan, section, luminaire position and results are shown together</span><span>Page 3</span></div>
+    <div class="footer"><span>{{ tr["report.footer_plan"] }}</span><span>{{ tr["page_3"] }}</span></div>
   </section>
 
   <section class="page">
     <header class="header">
-      <div><div class="brand">LUX Studio</div><div class="subtitle">Lighting performance</div></div>
+      <div><div class="brand">LUX Studio</div><div class="subtitle">{{ tr["report.performance"] }}</div></div>
       <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
     </header>
-    <h2 class="section-title">Photometric Results</h2>
+    <h2 class="section-title">{{ tr["report.photometric_results"] }}</h2>
     <div class="metric-grid">
       <div class="metric"><div class="metric-label">Lavg / Lm</div><div class="metric-value">{{ Lavg }}</div></div>
       <div class="metric"><div class="metric-label">Uo</div><div class="metric-value">{{ Uo }}</div></div>
@@ -419,21 +421,21 @@
       <div class="verdict-title">{{ compliant_label }}</div>
       <div>
         {% if compliant %}
-          All checked criteria pass for the selected class and photometry.
+          {{ tr["report.all_checked_pass"] }}
         {% else %}
-          One or more criteria fail. Review spacing, mounting height, optic, power, tilt or road geometry.
+          {{ tr["report.criteria_fail"] }}
         {% endif %}
       </div>
     </div>
-    <div class="footer"><span>Criteria table - {{ standard }}</span><span>Page 4</span></div>
+    <div class="footer"><span>{{ tr["criteria_table_footer"] }}</span><span>{{ tr["page_4"] }}</span></div>
   </section>
 
   <section class="page">
     <header class="header">
-      <div><div class="brand">LUX Studio</div><div class="subtitle">Isoline diagrams</div></div>
+      <div><div class="brand">LUX Studio</div><div class="subtitle">{{ tr["report.isolines"] }}</div></div>
       <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
     </header>
-    <h2 class="section-title">Isolines on Roadway and Pedestrian Areas</h2>
+    <h2 class="section-title">{{ tr["report.isolines_title"] }}</h2>
     {% if iso_luminance_svg %}
       <div class="chart-card large-chart">{{ iso_luminance_svg }}</div>
     {% endif %}
@@ -441,25 +443,25 @@
       <div class="chart-card large-chart" style="margin-top: 12px;">{{ iso_illuminance_svg }}</div>
     {% endif %}
     {% if not iso_luminance_svg and not iso_illuminance_svg %}
-      <div class="chart-card">No calculation grid is available for isoline rendering.</div>
+      <div class="chart-card">{{ tr["report.no_grid"] }}</div>
     {% endif %}
     <div class="technical-note">
-      Isoline contours are generated from the photometric field around the displayed luminaire positions. EN 13201 calculation points are overlaid for traceability against the tabulated grid.
+      {{ tr["report.isoline_note"] }}
     </div>
-    <div class="footer"><span>Technical isoline SVG diagrams</span><span>Page 5</span></div>
+    <div class="footer"><span>{{ tr["report.isoline_footer"] }}</span><span>{{ tr["page_5"] }}</span></div>
   </section>
 
   <section class="page">
     <header class="header">
-      <div><div class="brand">LUX Studio</div><div class="subtitle">Calculation point table</div></div>
+      <div><div class="brand">LUX Studio</div><div class="subtitle">{{ tr["report.point_table"] }}</div></div>
       <div><div class="badge">{{ compliant_label }}</div><div class="meta">{{ date }}</div></div>
     </header>
-    <h2 class="section-title">Calculation Points</h2>
+    <h2 class="section-title">{{ tr["report.point_table"] }}</h2>
     {{ point_table }}
     <div class="technical-note">
-      The table shows the first calculation mesh points used for the technical diagram. Coordinates are expressed in metres along the longitudinal x axis and transverse y axis.
+      {{ tr["report.point_note"] }}
     </div>
-    <div class="footer"><span>Calculation grid coordinates and values</span><span>Page 6</span></div>
+    <div class="footer"><span>{{ tr["report.point_footer"] }}</span><span>{{ tr["page_6"] }}</span></div>
   </section>
 </body>
 </html>

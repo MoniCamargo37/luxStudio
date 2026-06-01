@@ -1,4 +1,5 @@
 import React, { useId, useRef, useState } from 'react';
+import { useI18n } from '../../i18n';
 
 interface BatchExcelPanelProps {
   file: File | null;
@@ -6,6 +7,7 @@ interface BatchExcelPanelProps {
 }
 
 const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ file, onFileChange }) => {
+  const { t } = useI18n();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ file, onFileChange })
 
     const isExcel = /\.(xlsx|xls)$/i.test(nextFile.name);
     if (!isExcel) {
-      setError('Please upload an Excel file (.xlsx or .xls).');
+      setError(t('batch.invalidExcel'));
       onFileChange(null);
       return;
     }
@@ -43,7 +45,7 @@ const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ file, onFileChange })
           <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
           </svg>
-          Excel batch
+          {t('batch.title')}
         </h3>
       </div>
       <div className="p-4 space-y-3">
@@ -63,12 +65,12 @@ const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ file, onFileChange })
           ${file ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
           htmlFor={inputId}
         >
-          <div className="text-sm font-medium">{file ? file.name : 'Upload Excel'}</div>
+          <div className="text-sm font-medium">{file ? file.name : t('batch.uploadExcel')}</div>
           <div className="text-xs text-slate-400 mt-1">
-            {file ? 'Excel mode selected. Press Calculate to run the study.' : 'Optional: use Excel instead of the manual configuration.'}
+            {file ? t('batch.selected') : t('batch.optional')}
           </div>
           <div className="mt-3 inline-flex rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
-            {file ? 'Replace Excel' : 'Choose file'}
+            {file ? t('batch.replaceExcel') : t('batch.chooseFile')}
           </div>
         </label>
 
@@ -78,7 +80,7 @@ const BatchExcelPanel: React.FC<BatchExcelPanelProps> = ({ file, onFileChange })
             onClick={clearFile}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
-            Use manual configuration
+            {t('batch.useManual')}
           </button>
         )}
 

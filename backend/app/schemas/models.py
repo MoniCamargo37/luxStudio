@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from typing import Optional
 
 
 class CalculationConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     road_width: float = Field(ge=0.5, le=30, description="Road width in meters")
     sidewalk_left: float = Field(ge=0, le=10, default=0)
     sidewalk_right: float = Field(ge=0, le=10, default=0)
@@ -13,10 +15,22 @@ class CalculationConfig(BaseModel):
     )
     height: float = Field(ge=4, le=20, default=9, description="Pole height in meters")
     spacing: float = Field(ge=5, le=60, default=30, description="Pole spacing in meters")
-    arm_length: float = Field(ge=0, le=5, default=1.5, description="Arm length in meters")
+    arm_length: float = Field(
+        ge=0,
+        le=5,
+        default=1.5,
+        validation_alias=AliasChoices("arm_length", "armLength"),
+        description="Arm length in meters",
+    )
     pole_offset: float = Field(ge=0, le=5, default=0, description="Distance from road edge to pole axis in meters")
     pole_side: str = Field(default="left", pattern=r"^(left|right)$", description="Road side where unilateral poles are installed")
-    tilt: float = Field(ge=-30, le=30, default=5, description="Tilt angle in degrees")
+    tilt: float = Field(
+        ge=-30,
+        le=30,
+        default=5,
+        validation_alias=AliasChoices("tilt", "armTiltAngle"),
+        description="Arm tilt angle in degrees",
+    )
     optic_family: str = Field(description="Optic family code, e.g. F151")
     power: float = Field(gt=0, description="Luminaire power in watts")
     ldt_id: Optional[str] = None
@@ -30,6 +44,8 @@ class CalculationConfig(BaseModel):
     mf: float = Field(ge=0.5, le=1.0, default=0.85, description="Maintenance factor")
     pavement: str = Field(default="R3", pattern=r"^R[1-4]$")
     cct: int = Field(default=4000, ge=2700, le=6500)
+    cri: int = Field(default=70, ge=70, le=90)
+    language: str = Field(default="es", pattern=r"^(es|en)$")
 
 
 class LDTInfo(BaseModel):
@@ -39,6 +55,7 @@ class LDTInfo(BaseModel):
     manufacturer: str = "Unknown"
     model_family: str = "UNKNOWN"
     cct: int = 4000
+    cri: int = 70
     optic_family: str
     power: float
     flux: float
@@ -100,9 +117,13 @@ class OptimizationResponse(BaseModel):
 
 
 class AdvancedOptimizationVariables(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     power: bool = True
     spacing: bool = False
     height: bool = False
+    arm_length: bool = Field(default=False, validation_alias=AliasChoices("arm_length", "armLength"))
+    tilt: bool = Field(default=False, validation_alias=AliasChoices("tilt", "armTiltAngle"))
     optic_family: bool = False
 
 

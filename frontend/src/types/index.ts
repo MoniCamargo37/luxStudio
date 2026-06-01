@@ -5,6 +5,7 @@ export interface LDTInfo {
   manufacturer: string;
   model_family: string;
   cct: number;
+  cri: number;
   optic_family: string;
   power: number;
   flux: number;
@@ -69,6 +70,8 @@ export interface AdvancedOptimizationVariables {
   power: boolean;
   spacing: boolean;
   height: boolean;
+  arm_length: boolean;
+  tilt: boolean;
   optic_family: boolean;
 }
 

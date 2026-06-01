@@ -32,6 +32,19 @@ def find_ldt_for_config(config: CalculationConfig):
         if (
             l["optic_family"] == config.optic_family and
             abs(l["power"] - config.power) < 1 and
+            int(l.get("cri", 70)) == int(config.cri) and
+            int(l.get("cct", config.cct)) == int(config.cct)
+        )
+    ]
+    if candidates:
+        ldt = candidates[0]
+        return ldt["id"], ldt
+
+    candidates = [
+        l for l in scoped_ldts
+        if (
+            l["optic_family"] == config.optic_family and
+            abs(l["power"] - config.power) < 1 and
             int(l.get("cct", config.cct)) == int(config.cct)
         )
     ]

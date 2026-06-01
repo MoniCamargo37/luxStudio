@@ -2,12 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
 import type { LDTInfo } from '../../types';
 import EditableSlider from '../ui/EditableSlider';
+import { useI18n } from '../../i18n';
 
 const unique = <T,>(values: T[]) => Array.from(new Set(values)).sort();
 
 const LuminairePanel: React.FC = () => {
+  const { t } = useI18n();
   const {
     optic_family, setOpticFamily, power, setPower, cct, setCct,
+    cri, setCri,
     manufacturer, setManufacturer, model_family, setModelFamily,
     ldt_id, setSelectedLdt,
   } = useConfigStore();
@@ -90,7 +93,7 @@ const LuminairePanel: React.FC = () => {
   const uploadExternalLdt = async (file?: File) => {
     if (!file) return;
     if (!/\.ldt$/i.test(file.name)) {
-      setExternalError('Select an .ldt file.');
+      setExternalError(t('luminaire.selectLdt'));
       return;
     }
 
@@ -104,15 +107,16 @@ const LuminairePanel: React.FC = () => {
       const response = await fetch('/api/ldt/upload', { method: 'POST', body: form });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || 'Invalid LDT file');
+        throw new Error(data.detail || t('luminaire.invalidLdt'));
       }
       const ldt = data as LDTInfo;
       setExternalLdt(ldt);
       setSelectedLdt(ldt);
       setPower(ldt.power);
       setCct(ldt.cct);
+      setCri((ldt.cri === 80 || ldt.cri === 90 ? ldt.cri : 70) as 70 | 80 | 90);
     } catch (err: any) {
-      setExternalError(err.message || 'Invalid LDT file');
+      setExternalError(err.message || t('luminaire.invalidLdt'));
     } finally {
       setUploadingExternal(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -128,7 +132,7 @@ const LuminairePanel: React.FC = () => {
           <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 008.91 14"/>
           </svg>
-          Luminaire
+          {t('luminaire.title')}
         </h3>
       </div>
 
@@ -136,13 +140,13 @@ const LuminairePanel: React.FC = () => {
         {loading ? (
           <div className="text-center py-4">
             <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/>
-            <p className="text-xs text-slate-400 mt-2">Loading catalog...</p>
+            <p className="text-xs text-slate-400 mt-2">{t('luminaire.loadingCatalog')}</p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-sm font-medium text-slate-600">
-                Manufacturer
+                {t('luminaire.manufacturer')}
                 <select
                   value={manufacturer}
                   onChange={e => {
@@ -155,7 +159,7 @@ const LuminairePanel: React.FC = () => {
                 </select>
               </label>
               <label className="text-sm font-medium text-slate-600">
-                Type
+                {t('luminaire.type')}
                 <select
                   value={model_family}
                   onChange={e => {
@@ -171,7 +175,7 @@ const LuminairePanel: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">
-                Lens / Optic
+                {t('luminaire.lensOptic')}
               </label>
               <div className="flex flex-wrap gap-1">
                 {lenses.map(item => (
@@ -194,7 +198,7 @@ const LuminairePanel: React.FC = () => {
             </div>
 
             <EditableSlider
-              label="Power"
+              label={t('luminaire.power')}
               value={power}
               min={0}
               max={500}
@@ -206,7 +210,7 @@ const LuminairePanel: React.FC = () => {
             />
 
             <EditableSlider
-              label="Temperature"
+              label={t('luminaire.temperature')}
               value={cct}
               min={2700}
               max={6500}
@@ -217,6 +221,20 @@ const LuminairePanel: React.FC = () => {
               marks={['2700K', '4000K', '6500K']}
               disabled={Boolean(externalLdt)}
             />
+
+            <label className="block text-sm font-medium text-slate-600">
+              CRI
+              <select
+                value={cri}
+                onChange={e => setCri(Number(e.target.value) as 70 | 80 | 90)}
+                disabled={Boolean(externalLdt)}
+                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                <option value={70}>70</option>
+                <option value={80}>80</option>
+                <option value={90}>90</option>
+              </select>
+            </label>
 
             <div
               onDragOver={e => {
@@ -239,7 +257,7 @@ const LuminairePanel: React.FC = () => {
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="font-semibold text-slate-700">
-                  {externalLdt ? 'External LDT' : 'Reference LDT'}
+                  {externalLdt ? t('luminaire.externalLdt') : t('luminaire.referenceLdt')}
                 </div>
                 <button
                   type="button"
@@ -247,7 +265,7 @@ const LuminairePanel: React.FC = () => {
                   disabled={uploadingExternal}
                   className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
-                  {uploadingExternal ? 'Loading...' : 'Load LDT'}
+                  {uploadingExternal ? t('actions.loading') : t('luminaire.loadLdt')}
                 </button>
               </div>
               <input
@@ -262,11 +280,11 @@ const LuminairePanel: React.FC = () => {
                 <>
                   <div className="mt-2 truncate">{activeReference.luminaire_name}</div>
                   <div className={externalLdt ? 'text-emerald-700' : 'text-blue-600'}>
-                    {activeReference.power.toFixed(0)} W - {(activeReference.flux / 1000).toFixed(1)}k lm - {activeReference.efficiency.toFixed(1)} lm/W
+                    {activeReference.power.toFixed(0)} W - {(activeReference.flux / 1000).toFixed(1)}k lm - {activeReference.efficiency.toFixed(1)} lm/W - CRI {activeReference.cri ?? 70}
                   </div>
                 </>
               ) : (
-                <div className="mt-2 text-slate-400">No reference LDT selected.</div>
+                <div className="mt-2 text-slate-400">{t('luminaire.noReference')}</div>
               )}
 
               {externalError && (
@@ -281,7 +299,7 @@ const LuminairePanel: React.FC = () => {
                   onClick={clearExternalLdt}
                   className="mt-2 rounded-md border border-emerald-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
                 >
-                  Use catalog reference
+                  {t('luminaire.useCatalogReference')}
                 </button>
               )}
             </div>

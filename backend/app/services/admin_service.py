@@ -50,6 +50,7 @@ def parse_ldt_preview(data: bytes, filename: str) -> dict:
         "model_family": _extract_model_family(name),
         "optic_family": _extract_optic_family(name),
         "cct": _extract_cct(name or Path(filename).stem),
+        "cri": 70,
         "power": lamp["wattage"],
         "flux": lamp["flux_lm"],
         "efficiency": round(lamp["flux_lm"] / lamp["wattage"], 1) if lamp["wattage"] > 0 else 0,
@@ -85,6 +86,7 @@ def create_luminaire(db: Session, data: dict) -> Luminaire:
         name=data["luminaire_name"],
         power=float(data["power"]),
         cct=int(data["cct"]),
+        cri=int(data.get("cri", 70)),
         flux=float(data["flux"]),
         efficiency=float(data["efficiency"]),
         LORL=float(data["LORL"]),
@@ -115,6 +117,8 @@ def update_luminaire(db: Session, lum_id: int, data: dict) -> Optional[Luminaire
         lum.power = float(data["power"])
     if "cct" in data:
         lum.cct = int(data["cct"])
+    if "cri" in data:
+        lum.cri = int(data["cri"])
     if "flux" in data:
         lum.flux = float(data["flux"])
     if "efficiency" in data:

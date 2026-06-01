@@ -30,6 +30,7 @@ class Luminaire(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     power: Mapped[float] = mapped_column(Float, nullable=False)
     cct: Mapped[int] = mapped_column(Integer, nullable=False)
+    cri: Mapped[int] = mapped_column(Integer, nullable=False, default=70)
     flux: Mapped[float] = mapped_column(Float, nullable=False)
     efficiency: Mapped[float] = mapped_column(Float, nullable=False)
     LORL: Mapped[float] = mapped_column(Float, nullable=False)

@@ -23,6 +23,7 @@ import type {
   OptimizationReport,
   OptimizationResponse,
 } from './types';
+import { useI18n } from './i18n';
 import './App.css';
 
 const buildCalculationRequest = () => {
@@ -36,9 +37,11 @@ const buildCalculationRequest = () => {
     height: config.height,
     spacing: config.spacing,
     arm_length: config.arm_length,
+    armLength: config.arm_length,
     pole_offset: config.pole_offset,
     pole_side: config.pole_side,
     tilt: config.tilt,
+    armTiltAngle: config.tilt,
     optic_family: config.optic_family,
     power: config.power,
     ldt_id: config.ldt_id,
@@ -48,11 +51,14 @@ const buildCalculationRequest = () => {
     mf: config.mf,
     pavement: config.pavement,
     cct: config.cct,
+    cri: config.cri,
+    language: config.language,
   };
 };
 
 const formatWatts = (value: number) => `${value.toFixed(1)} W`;
 const formatMeters = (value: number) => `${value.toFixed(1)} m`;
+const formatDegrees = (value: number) => `${value.toFixed(0)} deg`;
 
 const buildOptimizationChanges = (
   beforeConfig: ReturnType<typeof buildCalculationRequest>,
@@ -64,11 +70,15 @@ const buildOptimizationChanges = (
   const afterSpacing = Number(afterConfig.spacing ?? beforeSpacing);
   const beforeHeight = Number(beforeConfig.height);
   const afterHeight = Number(afterConfig.height ?? beforeHeight);
+  const beforeArmLength = Number(beforeConfig.arm_length);
+  const afterArmLength = Number(afterConfig.arm_length ?? afterConfig.armLength ?? beforeArmLength);
+  const beforeTilt = Number(beforeConfig.tilt);
+  const afterTilt = Number(afterConfig.tilt ?? afterConfig.armTiltAngle ?? beforeTilt);
   const changes = [];
 
   if (Number.isFinite(beforePower) && Number.isFinite(afterPower) && Math.abs(beforePower - afterPower) >= 0.05) {
     changes.push({
-      label: 'Power',
+      label: 'power',
       before: formatWatts(beforePower),
       after: formatWatts(afterPower),
     });
@@ -76,7 +86,7 @@ const buildOptimizationChanges = (
 
   if (Number.isFinite(beforeSpacing) && Number.isFinite(afterSpacing) && Math.abs(beforeSpacing - afterSpacing) >= 0.05) {
     changes.push({
-      label: 'Spacing',
+      label: 'spacing',
       before: formatMeters(beforeSpacing),
       after: formatMeters(afterSpacing),
     });
@@ -84,9 +94,25 @@ const buildOptimizationChanges = (
 
   if (Number.isFinite(beforeHeight) && Number.isFinite(afterHeight) && Math.abs(beforeHeight - afterHeight) >= 0.05) {
     changes.push({
-      label: 'Height',
+      label: 'height',
       before: formatMeters(beforeHeight),
       after: formatMeters(afterHeight),
+    });
+  }
+
+  if (Number.isFinite(beforeArmLength) && Number.isFinite(afterArmLength) && Math.abs(beforeArmLength - afterArmLength) >= 0.05) {
+    changes.push({
+      label: 'arm_length',
+      before: formatMeters(beforeArmLength),
+      after: formatMeters(afterArmLength),
+    });
+  }
+
+  if (Number.isFinite(beforeTilt) && Number.isFinite(afterTilt) && Math.abs(beforeTilt - afterTilt) >= 0.5) {
+    changes.push({
+      label: 'tilt',
+      before: formatDegrees(beforeTilt),
+      after: formatDegrees(afterTilt),
     });
   }
 
@@ -109,6 +135,7 @@ const buildOptimizationReport = (
 };
 
 const Home: React.FC = () => {
+  const { t } = useI18n();
   const {
     results,
     loading,
@@ -120,6 +147,8 @@ const Home: React.FC = () => {
     setPower,
     setSpacing,
     setHeight,
+    setArmLength,
+    setTilt,
   } = useConfigStore();
   const [batchResults, setBatchResults] = useState<BatchCalculationResponse | null>(null);
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -154,12 +183,12 @@ const Home: React.FC = () => {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
+        throw new Error(errData?.detail || t('errors.server', { status: response.status }));
       }
 
       setBatchResults(await response.json());
     } catch (err: any) {
-      setError(err.message || 'Failed to calculate Excel file');
+      setError(err.message || t('errors.excelCalculation'));
     } finally {
       setLoading(false);
     }
@@ -185,7 +214,7 @@ const Home: React.FC = () => {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
+        throw new Error(errData?.detail || t('errors.server', { status: response.status }));
       }
 
       const data = await response.json() as OptimizationResponse;
@@ -202,7 +231,7 @@ const Home: React.FC = () => {
         setPower(data.config.power);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to optimize calculation');
+      setError(err.message || t('errors.optimizeCalculation'));
     } finally {
       setLoading(false);
     }
@@ -233,7 +262,7 @@ const Home: React.FC = () => {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
+        throw new Error(errData?.detail || t('errors.server', { status: response.status }));
       }
 
       if (isLensBatch) {
@@ -251,7 +280,7 @@ const Home: React.FC = () => {
         setOptimizationLensResults(lensRows);
         setOptimizationReport({
           feasible: Boolean(firstFeasible),
-          message: firstFeasible ? 'Optimized by lens.' : 'No selected lens found a compliant solution.',
+          message: firstFeasible ? t('results.optimized') : t('results.notFeasible'),
           objective,
           checked: 0,
           changes: [],
@@ -279,8 +308,14 @@ const Home: React.FC = () => {
       if (typeof data.config?.height === 'number') {
         setHeight(data.config.height);
       }
+      if (typeof data.config?.arm_length === 'number') {
+        setArmLength(data.config.arm_length);
+      }
+      if (typeof data.config?.tilt === 'number') {
+        setTilt(data.config.tilt);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to optimize setup');
+      setError(err.message || t('errors.optimizeSetup'));
     } finally {
       setLoading(false);
     }
@@ -304,8 +339,8 @@ const Home: React.FC = () => {
     <main className="p-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-semibold text-slate-800">New Lighting Study</h2>
-          <p className="text-slate-500 mt-1">Configure your road and luminaire, then calculate</p>
+          <h2 className="text-2xl font-semibold text-slate-800">{t('home.title')}</h2>
+          <p className="text-slate-500 mt-1">{t('home.subtitle')}</p>
         </div>
 
         {error && (
@@ -341,7 +376,7 @@ const Home: React.FC = () => {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
                 )}
-                {loading ? 'Calculating...' : excelFile ? 'Calculate Excel' : 'Calculate'}
+                {loading ? t('actions.calculating') : excelFile ? t('actions.calculateExcel') : t('actions.calculate')}
               </div>
             </button>
             <AutoOptimizePanel loading={loading} onRunSimple={optimizeSimple} onRunAdvanced={optimizeAdvanced} />
@@ -372,6 +407,7 @@ const Home: React.FC = () => {
 };
 
 const Admin: React.FC = () => {
+  const { t } = useI18n();
   const [editLum, setEditLum] = useState<LDTInfo | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -401,22 +437,22 @@ const Admin: React.FC = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-800">Luminaire Catalog</h2>
-          <p className="text-slate-500 text-sm mt-1">Manage luminaires in the database</p>
+          <h2 className="text-2xl font-semibold text-slate-800">{t('admin.title')}</h2>
+          <p className="text-slate-500 text-sm mt-1">{t('admin.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             to="/"
             className="px-3 py-1.5 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
           >
-            Back to Studio
+            {t('actions.backToStudio')}
           </Link>
           {!showForm && (
             <button
               onClick={handleNew}
               className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700"
             >
-              + New Luminaire
+              {t('actions.newLuminaire')}
             </button>
           )}
         </div>

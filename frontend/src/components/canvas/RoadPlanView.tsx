@@ -1,8 +1,10 @@
 import React from 'react';
 import { useConfigStore } from '../../store/useConfigStore';
+import { useI18n } from '../../i18n';
 
 const RoadPlanView: React.FC = () => {
-  const { road_width, sidewalk_left, sidewalk_right, lanes, spacing, arrangement, height, pole_offset, pole_side } = useConfigStore();
+  const { t } = useI18n();
+  const { road_width, sidewalk_left, sidewalk_right, lanes, spacing, arrangement, height, arm_length, tilt, pole_offset, pole_side } = useConfigStore();
 
   const W = 500;
   const H = 230;
@@ -32,11 +34,35 @@ const RoadPlanView: React.FC = () => {
   const centerY = roadY + roadH / 2;
 
   const Wtext = `W = ${totalW.toFixed(1)} m`;
+  const armProjection = Math.max(0, arm_length * Math.cos((tilt * Math.PI) / 180));
 
-  const lumY = (side: 'top' | 'bottom' | 'center') => {
+  const poleY = (side: 'top' | 'bottom' | 'center') => {
     if (side === 'center') return centerY;
     if (side === 'top') return Math.max(1, roadY - pole_offset * scaleY);
     return Math.min(H - 1, roadY + roadH + pole_offset * scaleY);
+  };
+
+  const lumY = (side: 'top' | 'bottom' | 'center') => {
+    if (side === 'center') return centerY;
+    const sign = side === 'top' ? 1 : -1;
+    return poleY(side) + sign * armProjection * scaleY;
+  };
+
+  const LuminaireMarker: React.FC<{ x: number; side: 'top' | 'bottom' | 'center' }> = ({ x, side }) => {
+    const py = poleY(side);
+    const ly = lumY(side);
+    return (
+      <g>
+        {side !== 'center' && arm_length > 0 && (
+          <>
+            <circle cx={x} cy={py} r="2.5" fill="#111827"/>
+            <line x1={x} y1={py} x2={x} y2={ly} stroke="#111827" strokeWidth="1.6" strokeLinecap="round"/>
+          </>
+        )}
+        <circle cx={x} cy={ly} r="5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5"/>
+        <line x1={x - 5} y1={ly} x2={x + 5} y2={ly} stroke="#1d4ed8" strokeWidth="1.5"/>
+      </g>
+    );
   };
 
   return (
@@ -46,7 +72,7 @@ const RoadPlanView: React.FC = () => {
           <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
           </svg>
-          Plan View
+          {t('canvas.planView')}
         </h3>
         <span className="text-xs text-slate-400">h = {height.toFixed(2)} m &middot; {arrangement}</span>
       </div>
@@ -99,13 +125,9 @@ const RoadPlanView: React.FC = () => {
             if (arrangement === 'Bilateral') {
               const firstSide = pole_side === 'right' ? 'bottom' : 'top';
               const secondSide = pole_side === 'right' ? 'top' : 'bottom';
-              const cy = i % 2 === 0 ? lumY(firstSide) : lumY(secondSide);
+              const side = i % 2 === 0 ? firstSide : secondSide;
               return (
-                <g key={`lum-${i}`}>
-                  <circle cx={x} cy={cy} r="5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5"/>
-                  <line x1={x} y1={cy - 5} x2={x} y2={cy + 5} stroke="#1d4ed8" strokeWidth="1.5"/>
-                  <line x1={x - 5} y1={cy} x2={x + 5} y2={cy} stroke="#1d4ed8" strokeWidth="1.5"/>
-                </g>
+                <LuminaireMarker key={`lum-${i}`} x={x} side={side} />
               );
             }
 
@@ -119,13 +141,8 @@ const RoadPlanView: React.FC = () => {
               );
             }
 
-            const cy = lumY(pole_side === 'right' ? 'bottom' : 'top');
             return (
-              <g key={`lum-${i}`}>
-                <circle cx={x} cy={cy} r="5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5"/>
-                <line x1={x} y1={cy - 5} x2={x} y2={cy + 5} stroke="#1d4ed8" strokeWidth="1.5"/>
-                <line x1={x - 5} y1={cy} x2={x + 5} y2={cy} stroke="#1d4ed8" strokeWidth="1.5"/>
-              </g>
+              <LuminaireMarker key={`lum-${i}`} x={x} side={pole_side === 'right' ? 'bottom' : 'top'} />
             );
           })}
 
@@ -153,7 +170,7 @@ const RoadPlanView: React.FC = () => {
 
           <g transform={`translate(${roadLeft + roadLen - 22}, ${swlY + 5})`}>
             <polygon points="0,0 14,6 0,12" fill="#94a3b8" opacity="0.5"/>
-            <text x="18" y="9" fontSize="9" fill="#94a3b8">flow</text>
+            <text x="18" y="9" fontSize="9" fill="#94a3b8">{t('canvas.flow')}</text>
           </g>
         </svg>
       </div>

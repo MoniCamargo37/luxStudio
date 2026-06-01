@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useI18n, type Language } from '../i18n';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -8,6 +9,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const isAdmin = location.pathname === '/admin';
+  const { language, setLanguage, t } = useI18n();
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-blue-50">
@@ -23,21 +25,32 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-900">LUX Studio</h1>
-                <p className="text-xs text-slate-500 -mt-0.5">Road Lighting Design</p>
+                <p className="text-xs text-slate-500 -mt-0.5">{t('app.subtitle')}</p>
               </div>
             </div>
             <nav className="flex items-center gap-4">
               {isAdmin ? (
                 <Link to="/" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                  Studio
+                  {t('nav.studio')}
                 </Link>
               ) : (
                 <Link to="/admin" className="text-sm text-slate-500 hover:text-blue-600">
-                  Admin
+                  {t('nav.admin')}
                 </Link>
               )}
               <div className="h-6 w-px bg-slate-200"/>
               <span className="text-sm text-slate-500">CIE 140 / EN 13201</span>
+              <div className="h-6 w-px bg-slate-200"/>
+              <label className="sr-only" htmlFor="language-select">{t('language.label')}</label>
+              <select
+                id="language-select"
+                value={language}
+                onChange={event => setLanguage(event.target.value as Language)}
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600"
+              >
+                <option value="es">{t('language.es')}</option>
+                <option value="en">{t('language.en')}</option>
+              </select>
               <div className="h-6 w-px bg-slate-200"/>
               <span className="text-xs text-slate-400">v0.1.0</span>
             </nav>

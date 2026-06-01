@@ -32,6 +32,7 @@ Luminaire
 - name: str
 - power: float (W)
 - cct: int (K)
+- cri: int (default 70; existing catalog LDTs are CRI 70)
 - flux: float (lm)
 - efficiency: float (lm/W)
 - LORL: float
@@ -45,18 +46,19 @@ Luminaire
 1. El frontend carga el catalogo desde `/api/ldt/catalog`, que consulta la DB.
 2. El usuario selecciona `Manufacturer`, `Type` y `Lens / Optic`.
 3. Esa combinacion selecciona un LDT de referencia mediante `ldt_id`.
-4. `Power` y `Temperature` son parametros libres, editables con slider o escribiendo el valor.
+4. `Power`, `Temperature` y `CRI` son parametros libres. CRI se selecciona entre 70, 80 y 90; por defecto es 70.
 5. La casilla numerica y la barra del slider siempre comparten el mismo estado.
 6. En el cuadro de referencia se puede cargar o arrastrar un `.ldt` externo para usarlo solo en el calculo actual.
 7. Cuando hay un `.ldt` externo activo, `Power` y `Temperature` quedan bloqueados porque se calcula exactamente el LDT cargado.
 
 ### Flujo de calculo
-1. El frontend envia `ldt_id`, `manufacturer`, `model_family`, `optic_family`, `power`, `cct` y la geometria.
+1. El frontend envia `ldt_id`, `manufacturer`, `model_family`, `optic_family`, `power`, `cct`, `cri` y la geometria.
 2. El backend obtiene la luminaria de referencia desde la DB.
 3. Si `ldt_id` es temporal, el backend usa el `.ldt` externo cargado en la sesion actual; si no, obtiene `ldt_path` desde la DB.
 4. El backend abre el `.ldt` indicado y crea `Photometry`.
 5. La distribucion fotometrica del LDT de referencia se mantiene como base.
-6. Para LDT de DB, el flujo objetivo se estima desde registros DB del mismo fabricante, tipo y optica, interpolando/extrapolando por potencia y CCT cuando existan datos suficientes.
+6. Para LDT de DB, el flujo objetivo se estima desde registros DB del mismo fabricante, tipo, optica y CRI de referencia, interpolando/extrapolando por potencia y CCT cuando existan datos suficientes.
+6.1. Si el CRI solicitado difiere del CRI del LDT de referencia, se aplica un factor de flujo interpolado desde datos tipicos LUXEON 5050 por CCT/CRI.
 7. Para LDT externo temporal, no se estima ni se adapta nada: se calcula con la fotometria y flujo exactos del archivo cargado, usando escala 1.0.
 8. En calculo manual con DB, el motor calcula con `flux_scale = target_flux / reference_flux`.
 9. Si no hay suficientes puntos para interpolar en DB, se usa la eficiencia/curva de potencia del LDT de referencia como fallback.

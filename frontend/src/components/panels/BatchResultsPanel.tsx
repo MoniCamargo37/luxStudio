@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { BatchCalculationItem, BatchCalculationResponse } from '../../types';
+import { useConfigStore } from '../../store/useConfigStore';
+import { useI18n } from '../../i18n';
 
 interface BatchResultsPanelProps {
   batch: BatchCalculationResponse;
@@ -15,6 +17,8 @@ const metricText = (item: BatchCalculationItem) => {
 };
 
 const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
+  const { t } = useI18n();
+  const language = useConfigStore(state => state.language);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pass' | 'fail'>('all');
   const [luminaireFilter, setLuminaireFilter] = useState('all');
@@ -53,11 +57,11 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
       const response = await fetch(format === 'pdf' ? '/api/report/generate' : '/api/report/excel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item.config),
+        body: JSON.stringify({ ...item.config, language }),
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.detail || `Server error (${response.status})`);
+        throw new Error(errData?.detail || t('errors.server', { status: response.status }));
       }
 
       const blob = await response.blob();
@@ -76,17 +80,17 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-700 text-sm">Batch results</h3>
+          <h3 className="font-semibold text-slate-700 text-sm">{t('batch.results')}</h3>
           <p className="text-xs text-slate-400 mt-0.5">{batch.filename}</p>
         </div>
-        <span className="text-xs text-slate-500">{successful.length} ok / {failed.length} errors</span>
+        <span className="text-xs text-slate-500">{t('batch.summary', { ok: successful.length, errors: failed.length })}</span>
       </div>
 
       {failed.length > 0 && (
         <div className="p-3 border-b border-slate-200 space-y-2">
           {failed.slice(0, 5).map(item => (
             <div key={`${item.row}-${item.model_id}`} className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
-              Row {item.row} - {item.model_id}: {item.error}
+              {t('batch.rowError', { row: item.row, model: item.model_id, error: item.error || '' })}
             </div>
           ))}
         </div>
@@ -95,26 +99,26 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
       <div className="px-4 py-3 border-b border-slate-200 bg-white">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t('batch.status')}</span>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as 'all' | 'pass' | 'fail')}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
-              <option value="all">All ({successful.length})</option>
-              <option value="pass">PASS ({passCount})</option>
-              <option value="fail">FAIL ({failCount})</option>
+              <option value="all">{t('batch.all', { count: successful.length })}</option>
+              <option value="pass">{t('status.pass')} ({passCount})</option>
+              <option value="fail">{t('status.fail')} ({failCount})</option>
             </select>
           </label>
 
           <label className="space-y-1 sm:col-span-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Luminaire</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t('results.luminaire')}</span>
             <select
               value={luminaireFilter}
               onChange={e => setLuminaireFilter(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
-              <option value="all">All luminaires</option>
+              <option value="all">{t('batch.allLuminaires')}</option>
               {luminaires.map(name => (
                 <option key={name} value={name}>{name}</option>
               ))}
@@ -122,7 +126,7 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
           </label>
         </div>
         <div className="mt-2 text-xs text-slate-400">
-          Showing {filteredItems.length} of {successful.length} calculated models
+          {t('batch.showing', { shown: filteredItems.length, total: successful.length })}
         </div>
       </div>
 
@@ -130,12 +134,12 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-slate-100 text-slate-600 z-10">
             <tr>
-              <th className="text-left font-semibold px-3 py-2">Model</th>
-              <th className="text-left font-semibold px-3 py-2">Setup</th>
-              <th className="text-left font-semibold px-3 py-2">Luminaire</th>
-              <th className="text-left font-semibold px-3 py-2">Result</th>
-              <th className="text-left font-semibold px-3 py-2">Status</th>
-              <th className="text-right font-semibold px-3 py-2">Outputs</th>
+              <th className="text-left font-semibold px-3 py-2">{t('batch.model')}</th>
+              <th className="text-left font-semibold px-3 py-2">{t('batch.setup')}</th>
+              <th className="text-left font-semibold px-3 py-2">{t('results.luminaire')}</th>
+              <th className="text-left font-semibold px-3 py-2">{t('batch.result')}</th>
+              <th className="text-left font-semibold px-3 py-2">{t('batch.status')}</th>
+              <th className="text-right font-semibold px-3 py-2">{t('batch.outputs')}</th>
             </tr>
           </thead>
           <tbody>
@@ -149,7 +153,7 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
                 <td className="px-3 py-2 text-slate-500">{metricText(item)}</td>
                 <td className="px-3 py-2">
                   <span className={`font-bold ${item.result?.compliant ? 'text-green-600' : 'text-red-600'}`}>
-                    {item.result?.compliant ? 'PASS' : 'FAIL'}
+                    {item.result?.compliant ? t('status.pass') : t('status.fail')}
                   </span>
                 </td>
                 <td className="px-3 py-2">
@@ -175,7 +179,7 @@ const BatchResultsPanel: React.FC<BatchResultsPanelProps> = ({ batch }) => {
             {filteredItems.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
-                  No results match the selected filters.
+                  {t('batch.noMatches')}
                 </td>
               </tr>
             )}
