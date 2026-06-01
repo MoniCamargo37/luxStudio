@@ -12,6 +12,7 @@ import ResultsPanel from './components/panels/ResultsPanel';
 import QuickInfoPanel from './components/panels/QuickInfoPanel';
 import RoadPlanView from './components/canvas/RoadPlanView';
 import RoadSectionView from './components/canvas/RoadSectionView';
+import RoadScene3D from './components/canvas/RoadScene3D';
 import LuminaireTable from './components/admin/LuminaireTable';
 import LuminaireForm from './components/admin/LuminaireForm';
 import type {
@@ -154,6 +155,7 @@ const Home: React.FC = () => {
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [optimizationReport, setOptimizationReport] = useState<OptimizationReport | null>(null);
   const [optimizationLensResults, setOptimizationLensResults] = useState<OptimizationLensResult[] | null>(null);
+  const [show3D, setShow3D] = useState(false);
 
   const handleExcelFileChange = (file: File | null) => {
     setExcelFile(file);
@@ -379,6 +381,17 @@ const Home: React.FC = () => {
                 {loading ? t('actions.calculating') : excelFile ? t('actions.calculateExcel') : t('actions.calculate')}
               </div>
             </button>
+            <button
+              onClick={() => setShow3D(true)}
+              className="w-full py-2.5 px-4 rounded-lg font-medium text-slate-100 border border-slate-700 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+              View 3D scene
+            </button>
             <AutoOptimizePanel loading={loading} onRunSimple={optimizeSimple} onRunAdvanced={optimizeAdvanced} />
             <BatchExcelPanel file={excelFile} onFileChange={handleExcelFileChange} />
           </section>
@@ -402,6 +415,7 @@ const Home: React.FC = () => {
           </section>
         </div>
       </div>
+      {show3D && <RoadScene3D onClose={() => setShow3D(false)} />}
     </main>
   );
 };

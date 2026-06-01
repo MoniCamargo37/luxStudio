@@ -107,3 +107,27 @@ async def get_ldt_curve(ldt_id: str):
         "Mc": info["Mc"],
         "Ng": info["Ng"],
     }
+
+
+@router.get("/{ldt_id}/photometric")
+async def get_ldt_photometric(ldt_id: str):
+    """Get full photometric data for 3D visualization."""
+    info = ldt_loader.get_ldt_by_id(ldt_id)
+    if info is None:
+        raise HTTPException(status_code=404, detail="LDT not found")
+    ph = ldt_loader.get_photometry(ldt_id)
+    if ph is None:
+        raise HTTPException(status_code=404, detail="Photometric data not found")
+    return {
+        "id": ldt_id,
+        "c": info["C"],
+        "gamma": info["G"],
+        "intensity": info["I"],
+        "conv": ph.conv,
+        "flux": ph.flux,
+        "power": ph.power,
+        "Mc": ph.Mc,
+        "Ng": ph.Ng,
+        "isym": info.get("isym", 0),
+        "LORL": info.get("LORL", 0),
+    }
